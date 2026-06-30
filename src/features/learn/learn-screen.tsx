@@ -4,7 +4,6 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/components/layout/app-header";
-import { ArrowRightIcon } from "@/components/ui/icons";
 import {
   getTopicProgress,
   learnCategories,
@@ -96,7 +95,7 @@ export function LearnScreen() {
               {overallProgress.completedTopics} / {overallProgress.totalTopics} topics completed
             </Text>
           </View>
-          <ArrowRightIcon color="#63718b" size={18} strokeWidth={1.9} />
+          <Text style={styles.chevronText}>{">"}</Text>
         </Pressable>
 
         <ScrollView
@@ -167,7 +166,7 @@ function LearnTopicCard({ onPress, topic }: { onPress: () => void; topic: LearnT
         </View>
       </View>
 
-      <ArrowRightIcon color="#63718b" size={18} strokeWidth={1.9} />
+      <Text style={styles.chevronText}>{">"}</Text>
     </Pressable>
   );
 }
@@ -212,6 +211,13 @@ const styles = StyleSheet.create({
   categoryList: {
     gap: 10,
     paddingRight: 18,
+  },
+  chevronText: {
+    color: "#63718b",
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: 0,
+    lineHeight: 24,
   },
   content: {
     gap: 12,

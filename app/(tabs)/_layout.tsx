@@ -4,10 +4,10 @@ import { FloatingTabBar } from "@/components/navigation/floating-tab-bar";
 import { TabBarIcon } from "@/components/navigation/tab-bar-icon";
 import {
   BookOpenIcon,
-  ClipboardListIcon,
+  ClipboardCheckIcon,
   HomeIcon,
-  RouteIcon,
-  UserIcon,
+  RoadIcon,
+  SettingsIcon,
 } from "@/components/ui/icons";
 
 export default function TabLayout() {
@@ -45,7 +45,7 @@ export default function TabLayout() {
           title: "Scenarios",
           tabBarAccessibilityLabel: "Scenarios tab",
           tabBarIcon: ({ color, focused, size }) => (
-            <TabBarIcon color={color} focused={focused} icon={RouteIcon} size={size} />
+            <TabBarIcon color={color} focused={focused} icon={RoadIcon} size={size} />
           ),
         }}
       />
@@ -55,17 +55,17 @@ export default function TabLayout() {
           title: "Quiz",
           tabBarAccessibilityLabel: "Quiz tab",
           tabBarIcon: ({ color, focused, size }) => (
-            <TabBarIcon color={color} focused={focused} icon={ClipboardListIcon} size={size} />
+            <TabBarIcon color={color} focused={focused} icon={ClipboardCheckIcon} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
-          tabBarAccessibilityLabel: "Profile tab",
+          title: "Settings",
+          tabBarAccessibilityLabel: "Settings tab",
           tabBarIcon: ({ color, focused, size }) => (
-            <TabBarIcon color={color} focused={focused} icon={UserIcon} size={size} />
+            <TabBarIcon color={color} focused={focused} icon={SettingsIcon} size={size} />
           ),
         }}
       />

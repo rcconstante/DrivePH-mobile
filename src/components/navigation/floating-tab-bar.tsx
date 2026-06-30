@@ -1,8 +1,8 @@
 import type { BottomTabBarProps, BottomTabNavigationOptions } from "expo-router/js-tabs";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-const activeColor = "#0757ff";
-const inactiveColor = "#7b8aa4";
+const activeColor = "#4caf50";
+const inactiveColor = "#8f9aa6";
 
 function getLabel(
   label: BottomTabNavigationOptions["tabBarLabel"],
@@ -63,7 +63,7 @@ export function FloatingTabBar({ descriptors, insets, navigation, state }: Botto
               {options.tabBarIcon?.({
                 color,
                 focused,
-                size: focused ? 23 : 22,
+                size: focused ? 24 : 23,
               })}
             </View>
             <Text
@@ -83,10 +83,10 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
+    borderColor: "#edf1ee",
     borderRadius: 999,
     borderWidth: 1,
-    boxShadow: "0 10px 24px rgba(6, 27, 73, 0.12)",
+    boxShadow: "0 10px 24px rgba(23, 34, 48, 0.1)",
     flexDirection: "row",
     gap: 4,
     height: 74,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   item: {
     alignItems: "center",
     borderColor: "transparent",
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
     flex: 1,
     gap: 2,
@@ -108,8 +108,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   itemActive: {
-    backgroundColor: "#eaf2ff",
-    borderColor: "#cfe0ff",
+    backgroundColor: "#eef9ef",
+    borderColor: "#d7efd9",
   },
   itemPressed: {
     opacity: 0.86,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "800",
     letterSpacing: 0,
     lineHeight: 13,
     maxWidth: "100%",

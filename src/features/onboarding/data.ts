@@ -7,24 +7,10 @@ export type TextPart = {
 
 export type TextLine = TextPart[];
 
-type BrandHeader = {
-  kind: "brand";
-};
-
-type HeadlineHeader = {
-  kind: "headline";
-  lines: TextLine[];
-};
-
-type SpacerHeader = {
-  kind: "spacer";
-};
-
 export type OnboardingSlide = {
   id: string;
   image: ImageSourcePropType;
   imageLabel: string;
-  header: BrandHeader | HeadlineHeader | SpacerHeader;
   title: TextLine[];
   body: string;
   cta: string;
@@ -34,54 +20,46 @@ export const onboardingSlides: OnboardingSlide[] = [
   {
     id: "companion",
     image: require("../../assets/images/Onboarding-1.png") as ImageSourcePropType,
-    imageLabel: "Blue car driving in the Philippines with a city skyline and flag",
-    header: {
-      kind: "brand",
-    },
+    imageLabel: "RiderPH logo above a green car on a road",
     title: [
-      [{ text: "Your complete" }],
-      [{ text: "driving companion", accent: true }],
+      [{ text: "Learn. Practice." }],
+      [
+        { text: "Drive with " },
+        { text: "Confidence.", accent: true },
+      ],
     ],
-    body: "From your first permit to becoming\na better, safer driver for life.",
+    body: "Your all-in-one guide to learning\nhow to drive the right way in the Philippines.",
     cta: "Next",
   },
   {
     id: "licenses",
     image: require("../../assets/images/Onboarding-2.png") as ImageSourcePropType,
-    imageLabel: "License cards and a route marker showing the licensing journey",
-    header: {
-      kind: "spacer",
-    },
+    imageLabel: "Driving guide book, traffic light, driver's license, and safety shield",
     title: [
-      [{ text: "We guide you every" }],
-      [{ text: "step of the way", accent: true }],
+      [{ text: "Everything You Need" }],
+      [
+        { text: "to " },
+        { text: "Get Licensed", accent: true },
+      ],
     ],
-    body: "Understand the process from Student\nPermit to Professional License and\neverything in between.",
+    body: "From student permit to driver's license,\nwe break it down step-by-step.",
     cta: "Next",
   },
   {
     id: "vehicles",
     image: require("../../assets/images/Onboarding-3.png") as ImageSourcePropType,
-    imageLabel: "Cars, motorcycle, truck, and bus on a road",
-    header: {
-      kind: "headline",
-      lines: [
-        [{ text: "Learn for any" }],
-        [
-          { text: "vehicle you ", accent: true },
-          { text: "drive", accent: true },
-        ],
-      ],
-    },
+    imageLabel: "Motorcycle rider and truck passing road signs",
     title: [
-      [{ text: "Lessons and tips tailored" }],
       [
-        { text: "for " },
-        { text: "cars, motorcycles,", accent: true },
+        { text: "Practice for " },
+        { text: "Real", accent: true },
       ],
-      [{ text: "trucks, and more.", accent: true }],
+      [
+        { text: "Life", accent: true },
+        { text: " Situations" },
+      ],
     ],
-    body: "Choose your vehicle and get personalized\ncontent that fits what you drive.",
+    body: "Learn through scenarios, road signs,\nand quizzes to become a responsible driver.",
     cta: "Get Started",
   },
 ];

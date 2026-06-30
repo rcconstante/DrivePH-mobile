@@ -13,8 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { BrandLogo } from "@/components/ui/brand-logo";
-import { ArrowRightIcon } from "@/components/ui/icons";
+import { ChevronRightIcon } from "@/components/ui/icons";
 import { onboardingSlides, type OnboardingSlide, type TextLine } from "@/features/onboarding/data";
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -30,27 +29,26 @@ export function OnboardingScreen() {
   const currentSlide = onboardingSlides[currentIndex] ?? onboardingSlides[0]!;
 
   const metrics = useMemo(() => {
-    const footerHeight = 126 + Math.max(insets.bottom, 16);
-    const topSlotHeight = clamp(height * 0.15, 94, 130);
-    const copySlotHeight = clamp(height * 0.2, 146, 180);
-    const artworkHeight = clamp(
-      height - insets.top - footerHeight - topSlotHeight - copySlotHeight - 24,
-      248,
-      388,
-    );
-    const artworkWidth = clamp(width - 44, 292, 390);
+    const safeBottom = Math.max(insets.bottom, 16);
+    const safeTop = Math.max(insets.top, 16);
+    const horizontalPadding = clamp(width * 0.06, 20, 28);
+    const footerHeight = 112 + safeBottom;
+    const imageSize = clamp(Math.min(width - 18, height * 0.54), 292, 430);
 
     return {
-      artworkHeight,
-      artworkWidth,
-      contentTopPadding: Math.max(insets.top, 16),
-      copySlotHeight,
-      footerBottomPadding: Math.max(insets.bottom, 16),
+      contentTopPadding: safeTop + 36,
+      footerBottomPadding: safeBottom,
       footerHeight,
-      horizontalPadding: clamp(width * 0.06, 20, 28),
-      topSlotHeight,
+      horizontalPadding,
+      imageSize,
+      slideBottomPadding: footerHeight + 10,
+      skipTop: safeTop + 6,
     };
   }, [height, insets.bottom, insets.top, width]);
+
+  const goToSetup = useCallback(() => {
+    router.replace("/setup/vehicle");
+  }, [router]);
 
   const handleScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -62,15 +60,15 @@ export function OnboardingScreen() {
 
   const handlePrimaryPress = useCallback(() => {
     if (isLastSlide) {
-      router.replace("/setup/vehicle");
+      goToSetup();
       return;
     }
 
     scrollRef.current?.scrollTo({
-      x: width * (currentIndex + 1),
       animated: true,
+      x: width * (currentIndex + 1),
     });
-  }, [currentIndex, isLastSlide, router, width]);
+  }, [currentIndex, goToSetup, isLastSlide, width]);
 
   return (
     <View style={styles.screen}>
@@ -89,18 +87,114 @@ export function OnboardingScreen() {
         {onboardingSlides.map((slide) => (
           <OnboardingSlideView
             key={slide.id}
+            metrics={metrics}
+            onSkip={goToSetup}
             slide={slide}
             width={width}
-            metrics={metrics}
           />
         ))}
       </ScrollView>
 
+      <OnboardingFooter
+        currentIndex={currentIndex}
+        isLastSlide={isLastSlide}
+        metrics={metrics}
+        onPress={handlePrimaryPress}
+        primaryLabel={currentSlide.cta}
+      />
+    </View>
+  );
+}
+
+type SlideMetrics = {
+  contentTopPadding: number;
+  footerBottomPadding: number;
+  footerHeight: number;
+  horizontalPadding: number;
+  imageSize: number;
+  slideBottomPadding: number;
+  skipTop: number;
+};
+
+type OnboardingSlideViewProps = {
+  metrics: SlideMetrics;
+  onSkip: () => void;
+  slide: OnboardingSlide;
+  width: number;
+};
+
+function OnboardingSlideView({ metrics, onSkip, slide, width }: OnboardingSlideViewProps) {
+  return (
+    <View
+      style={[
+        styles.slide,
+        {
+          paddingBottom: metrics.slideBottomPadding,
+          paddingHorizontal: metrics.horizontalPadding,
+          paddingTop: metrics.contentTopPadding,
+          width,
+        },
+      ]}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Skip onboarding"
+        onPress={onSkip}
+        style={[
+          styles.skipButton,
+          {
+            right: metrics.horizontalPadding,
+            top: metrics.skipTop,
+          },
+        ]}
+      >
+        <Text style={styles.skipText}>Skip</Text>
+      </Pressable>
+
+      <Image
+        source={slide.image}
+        resizeMode="contain"
+        accessibilityLabel={slide.imageLabel}
+        style={[
+          styles.artwork,
+          {
+            height: metrics.imageSize,
+            width: metrics.imageSize,
+          },
+        ]}
+      />
+
+      <View style={styles.copyBlock}>
+        <RichText lines={slide.title} textStyle={styles.slideTitle} />
+        <Text style={styles.slideBody}>{slide.body}</Text>
+      </View>
+    </View>
+  );
+}
+
+type FooterProps = {
+  currentIndex: number;
+  isLastSlide: boolean;
+  metrics: SlideMetrics;
+  onPress: () => void;
+  primaryLabel: string;
+};
+
+function OnboardingFooter({
+  currentIndex,
+  isLastSlide,
+  metrics,
+  onPress,
+  primaryLabel,
+}: FooterProps) {
+  if (isLastSlide) {
+    return (
       <View
         style={[
           styles.footer,
+          styles.lastFooter,
           {
-            height: metrics.footerHeight,
+            height: metrics.footerHeight + 18,
             paddingBottom: metrics.footerBottomPadding,
             paddingHorizontal: metrics.horizontalPadding,
           },
@@ -109,98 +203,57 @@ export function OnboardingScreen() {
         <PaginationDots currentIndex={currentIndex} />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={currentSlide.cta}
-          onPress={handlePrimaryPress}
+          accessibilityLabel={primaryLabel}
+          onPress={onPress}
           style={({ pressed }) => [
             styles.primaryButton,
-            pressed ? styles.primaryButtonPressed : null,
+            pressed ? styles.buttonPressed : null,
           ]}
         >
-          <Text style={styles.primaryButtonLabel}>{currentSlide.cta}</Text>
-          <ArrowRightIcon
-            color="#ffffff"
-            size={22}
-            strokeWidth={1.9}
-            style={styles.primaryButtonIcon}
-          />
+          <Text style={styles.primaryButtonLabel}>{primaryLabel}</Text>
         </Pressable>
-      </View>
-    </View>
-  );
-}
-
-type SlideMetrics = {
-  artworkHeight: number;
-  artworkWidth: number;
-  contentTopPadding: number;
-  copySlotHeight: number;
-  footerBottomPadding: number;
-  footerHeight: number;
-  horizontalPadding: number;
-  topSlotHeight: number;
-};
-
-type OnboardingSlideViewProps = {
-  slide: OnboardingSlide;
-  width: number;
-  metrics: SlideMetrics;
-};
-
-function OnboardingSlideView({ metrics, slide, width }: OnboardingSlideViewProps) {
-  return (
-    <View
-      style={[
-        styles.slide,
-        {
-          paddingHorizontal: metrics.horizontalPadding,
-          paddingTop: metrics.contentTopPadding,
-          width,
-        },
-      ]}
-    >
-      <View style={[styles.headerSlot, { height: metrics.topSlotHeight }]}>
-        <SlideHeader slide={slide} />
-      </View>
-
-      <View
-        style={[
-          styles.artworkFrame,
-          {
-            height: metrics.artworkHeight,
-            width: metrics.artworkWidth,
-          },
-        ]}
-      >
-        <Image
-          source={slide.image}
-          resizeMode="cover"
-          accessibilityLabel={slide.imageLabel}
-          style={styles.artwork}
-        />
-      </View>
-
-      <View style={[styles.copySlot, { height: metrics.copySlotHeight }]}>
-        <RichText lines={slide.title} textStyle={styles.slideTitle} />
-        <Text style={styles.slideBody}>{slide.body}</Text>
-      </View>
-    </View>
-  );
-}
-
-function SlideHeader({ slide }: { slide: OnboardingSlide }) {
-  if (slide.header.kind === "brand") {
-    return <BrandLogo align="center" size="large" subtitle="tagline" />;
-  }
-
-  if (slide.header.kind === "headline") {
-    return (
-      <View style={styles.topHeadlineWrap}>
-        <RichText lines={slide.header.lines} textStyle={styles.topHeadline} />
       </View>
     );
   }
 
-  return <View style={styles.headerSpacer} />;
+  return (
+    <View
+      style={[
+        styles.footer,
+        {
+          height: metrics.footerHeight,
+          paddingBottom: metrics.footerBottomPadding,
+          paddingHorizontal: metrics.horizontalPadding,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.centerDots,
+          {
+            bottom: metrics.footerBottomPadding + 24,
+          },
+        ]}
+      >
+        <PaginationDots currentIndex={currentIndex} />
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Next onboarding slide"
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.nextButton,
+          {
+            bottom: metrics.footerBottomPadding,
+            right: metrics.horizontalPadding,
+          },
+          pressed ? styles.buttonPressed : null,
+        ]}
+      >
+        <ChevronRightIcon color="#ffffff" size={30} strokeWidth={2.8} />
+      </Pressable>
+    </View>
+  );
 }
 
 function PaginationDots({ currentIndex }: { currentIndex: number }) {
@@ -246,83 +299,26 @@ function RichText({ lines, textStyle }: RichTextProps) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#f7fbff",
-  },
-  slide: {
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  headerSlot: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-  },
-  topHeadlineWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  topHeadline: {
-    color: "#061b49",
-    fontSize: 26,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 32,
-    textAlign: "center",
-  },
-  headerSpacer: {
-    height: 1,
-    width: 1,
-  },
-  artworkFrame: {
-    alignItems: "center",
-    backgroundColor: "#eef7ff",
-    borderRadius: 28,
-    justifyContent: "center",
-    overflow: "hidden",
+  accentText: {
+    color: "#3d8f3f",
   },
   artwork: {
-    height: "100%",
-    width: "100%",
+    flexShrink: 0,
   },
-  copySlot: {
+  buttonPressed: {
+    opacity: 0.86,
+  },
+  centerDots: {
     alignItems: "center",
-    justifyContent: "center",
+    left: 0,
+    position: "absolute",
+    right: 0,
+  },
+  copyBlock: {
+    alignItems: "center",
+    marginTop: 16,
     maxWidth: 340,
     width: "100%",
-  },
-  slideTitle: {
-    color: "#061b49",
-    fontSize: 25,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 31,
-    textAlign: "center",
-  },
-  accentText: {
-    color: "#0757ff",
-  },
-  slideBody: {
-    color: "#63718b",
-    fontSize: 16,
-    fontWeight: "500",
-    letterSpacing: 0,
-    lineHeight: 23,
-    paddingTop: 14,
-    textAlign: "center",
-  },
-  footer: {
-    backgroundColor: "#f7fbff",
-    gap: 24,
-    justifyContent: "flex-end",
-  },
-  dots: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "center",
-    minHeight: 14,
   },
   dot: {
     borderRadius: 5,
@@ -330,35 +326,92 @@ const styles = StyleSheet.create({
     width: 10,
   },
   dotActive: {
-    backgroundColor: "#0757ff",
+    backgroundColor: "#3d8f3f",
   },
   dotInactive: {
-    backgroundColor: "#d8e0eb",
+    backgroundColor: "#d8d8d8",
+  },
+  dots: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 14,
+    justifyContent: "center",
+    minHeight: 14,
+  },
+  footer: {
+    backgroundColor: "#fffdf8",
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+  },
+  lastFooter: {
+    gap: 28,
+    justifyContent: "flex-end",
+  },
+  nextButton: {
+    alignItems: "center",
+    backgroundColor: "#3d8f3f",
+    borderRadius: 32,
+    boxShadow: "0 9px 16px rgba(45, 126, 56, 0.28)",
+    height: 64,
+    justifyContent: "center",
+    position: "absolute",
+    width: 64,
   },
   primaryButton: {
     alignItems: "center",
-    backgroundColor: "#0757ff",
+    backgroundColor: "#3d8f3f",
     borderRadius: 999,
-    flexDirection: "row",
-    gap: 10,
-    height: 56,
+    boxShadow: "0 9px 16px rgba(45, 126, 56, 0.28)",
+    height: 58,
     justifyContent: "center",
-    overflow: "hidden",
-    position: "relative",
     width: "100%",
-  },
-  primaryButtonPressed: {
-    opacity: 0.86,
   },
   primaryButtonLabel: {
     color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 17,
+    fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 22,
     textAlign: "center",
   },
-  primaryButtonIcon: {
-    marginTop: 1,
+  screen: {
+    backgroundColor: "#fffdf8",
+    flex: 1,
+  },
+  skipButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    position: "absolute",
+    zIndex: 2,
+  },
+  skipText: {
+    color: "#2f7f38",
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0,
+    lineHeight: 20,
+  },
+  slide: {
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  slideBody: {
+    color: "#151c24",
+    fontSize: 15,
+    fontWeight: "500",
+    letterSpacing: 0,
+    lineHeight: 22,
+    paddingTop: 16,
+    textAlign: "center",
+  },
+  slideTitle: {
+    color: "#111923",
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 34,
+    textAlign: "center",
   },
 });

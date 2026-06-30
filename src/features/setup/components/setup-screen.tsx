@@ -1,11 +1,22 @@
 import { useRouter } from "expo-router";
 import type { PropsWithChildren } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  type ImageSourcePropType,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  BadgeCheckIcon,
+  BarChartIcon,
+  CarIcon,
   CheckIcon,
   type IconComponent,
 } from "@/components/ui/icons";
@@ -15,17 +26,29 @@ type SetupScreenProps = PropsWithChildren<{
   totalSteps: number;
   title: string;
   subtitle: string;
+  heroImage: ImageSourcePropType;
+  heroImageLabel: string;
   primaryLabel: string;
   primaryDisabled?: boolean;
+  primaryIcon?: "arrow" | "check";
   onPrimaryPress: () => void;
   showBackButton?: boolean;
 }>;
 
+const stepIcons: Record<number, IconComponent> = {
+  1: CarIcon,
+  2: BadgeCheckIcon,
+  3: BarChartIcon,
+};
+
 export function SetupScreen({
   children,
   currentStep,
+  heroImage,
+  heroImageLabel,
   onPrimaryPress,
   primaryDisabled = false,
+  primaryIcon = "arrow",
   primaryLabel,
   showBackButton,
   subtitle,
@@ -35,6 +58,7 @@ export function SetupScreen({
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const canGoBack = showBackButton ?? currentStep > 1;
+  const StepIcon = stepIcons[currentStep] ?? CarIcon;
 
   return (
     <View style={styles.screen}>
@@ -46,11 +70,14 @@ export function SetupScreen({
           },
         ]}
       >
-        <View style={styles.topBar}>
-          <View style={styles.progressWrap}>
-            <Text style={styles.stepLabel}>
-              Step {currentStep} of {totalSteps}
-            </Text>
+        <View style={styles.progressHeader}>
+          <Text style={styles.stepLabel}>
+            Step {currentStep} of {totalSteps}
+          </Text>
+          <View style={styles.progressRow}>
+            <View style={styles.stepIconCircle}>
+              <StepIcon color="#ffffff" size={22} strokeWidth={2.3} />
+            </View>
             <View style={styles.progressTrack}>
               <View
                 style={[
@@ -62,9 +89,17 @@ export function SetupScreen({
           </View>
         </View>
 
-        <View style={styles.heading}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+        <View style={styles.heroRow}>
+          <View style={styles.heading}>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.subtitle}>{subtitle}</Text>
+          </View>
+          <Image
+            source={heroImage}
+            resizeMode="contain"
+            accessibilityLabel={heroImageLabel}
+            style={styles.heroImage}
+          />
         </View>
       </View>
 
@@ -93,10 +128,10 @@ export function SetupScreen({
               onPress={() => router.back()}
               style={({ pressed }) => [
                 styles.secondaryButton,
-                pressed ? styles.secondaryButtonPressed : null,
+                pressed ? styles.buttonPressed : null,
               ]}
             >
-              <ArrowLeftIcon color="#0757ff" size={21} strokeWidth={1.9} />
+              <ArrowLeftIcon color="#172230" size={18} strokeWidth={2.1} />
               <Text style={styles.secondaryButtonLabel}>Back</Text>
             </Pressable>
           ) : null}
@@ -108,12 +143,16 @@ export function SetupScreen({
             onPress={onPrimaryPress}
             style={({ pressed }) => [
               styles.primaryButton,
-              pressed && !primaryDisabled ? styles.primaryButtonPressed : null,
+              pressed && !primaryDisabled ? styles.buttonPressed : null,
               primaryDisabled ? styles.primaryButtonDisabled : null,
             ]}
           >
             <Text style={styles.primaryButtonLabel}>{primaryLabel}</Text>
-            <ArrowRightIcon color="#ffffff" size={22} strokeWidth={1.9} style={styles.primaryButtonIcon} />
+            {primaryIcon === "check" ? (
+              <CheckIcon color="#ffffff" size={20} strokeWidth={2.4} />
+            ) : (
+              <ArrowRightIcon color="#ffffff" size={20} strokeWidth={2.1} />
+            )}
           </Pressable>
         </View>
       </View>
@@ -122,8 +161,8 @@ export function SetupScreen({
 }
 
 type SelectionCardProps = {
-  icon: IconComponent;
-  iconColor: string;
+  image: ImageSourcePropType;
+  imageLabel: string;
   label: string;
   description?: string;
   selected: boolean;
@@ -132,17 +171,17 @@ type SelectionCardProps = {
 
 export function SelectionCard({
   description,
-  icon: Icon,
-  iconColor,
+  image,
+  imageLabel,
   label,
   onPress,
   selected,
 }: SelectionCardProps) {
   return (
     <Pressable
-      accessibilityRole="checkbox"
+      accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ checked: selected }}
+      accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [
         styles.optionCard,
@@ -150,131 +189,33 @@ export function SelectionCard({
         pressed ? styles.optionCardPressed : null,
       ]}
     >
-      <View style={styles.optionIconWrap}>
-        <Icon color={iconColor} size={28} strokeWidth={1.9} />
-      </View>
+      <Image
+        source={image}
+        resizeMode="contain"
+        accessibilityLabel={imageLabel}
+        style={styles.optionImage}
+      />
       <View style={styles.optionCopy}>
-        <Text style={styles.optionLabel}>{label}</Text>
+        <Text style={[styles.optionLabel, selected ? styles.optionLabelSelected : null]}>
+          {label}
+        </Text>
         {description != null ? <Text style={styles.optionDescription}>{description}</Text> : null}
       </View>
       <View style={[styles.checkMark, selected ? styles.checkMarkSelected : null]}>
-        {selected ? <CheckIcon color="#ffffff" size={15} strokeWidth={2.1} /> : null}
+        {selected ? <CheckIcon color="#ffffff" size={14} strokeWidth={2.5} /> : null}
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#f7fbff",
-  },
-  header: {
-    gap: 28,
-    paddingBottom: 18,
-    paddingHorizontal: 22,
-  },
-  optionsScroll: {
-    flex: 1,
-  },
-  optionsContent: {
-    paddingBottom: 20,
-    paddingHorizontal: 22,
-  },
-  topBar: {
-    alignItems: "center",
-    width: "100%",
-  },
-  progressWrap: {
-    gap: 8,
-    width: "100%",
-  },
-  stepLabel: {
-    color: "#63718b",
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 18,
-  },
-  progressTrack: {
-    backgroundColor: "#dde6f2",
-    borderRadius: 999,
-    height: 8,
-    overflow: "hidden",
-  },
-  progressFill: {
-    backgroundColor: "#0757ff",
-    borderRadius: 999,
-    height: "100%",
-  },
-  heading: {
-    gap: 12,
-  },
-  title: {
-    color: "#061b49",
-    fontSize: 34,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 40,
-  },
-  subtitle: {
-    color: "#63718b",
-    fontSize: 17,
-    fontWeight: "600",
-    letterSpacing: 0,
-    lineHeight: 24,
-  },
-  options: {
-    gap: 12,
-  },
-  optionCard: {
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 14,
-    minHeight: 84,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  optionCardSelected: {
-    backgroundColor: "#eef5ff",
-    borderColor: "#0757ff",
-  },
-  optionCardPressed: {
+  buttonPressed: {
     opacity: 0.86,
-  },
-  optionIconWrap: {
-    alignItems: "center",
-    backgroundColor: "#f1f6fc",
-    borderRadius: 16,
-    height: 52,
-    justifyContent: "center",
-    width: 52,
-  },
-  optionCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  optionLabel: {
-    color: "#061b49",
-    fontSize: 16,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 21,
-  },
-  optionDescription: {
-    color: "#63718b",
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: 0,
-    lineHeight: 18,
   },
   checkMark: {
     alignItems: "center",
-    borderColor: "#ccd8e7",
+    backgroundColor: "#ffffff",
+    borderColor: "#d7dfdd",
     borderRadius: 12,
     borderWidth: 1,
     height: 24,
@@ -282,67 +223,193 @@ const styles = StyleSheet.create({
     width: 24,
   },
   checkMarkSelected: {
-    backgroundColor: "#0757ff",
-    borderColor: "#0757ff",
+    backgroundColor: "#2f973b",
+    borderColor: "#2f973b",
   },
   footer: {
-    backgroundColor: "#f7fbff",
-    paddingHorizontal: 22,
-    paddingTop: 18,
+    backgroundColor: "#fbfcf8",
+    paddingHorizontal: 20,
+    paddingTop: 14,
   },
   footerActions: {
     flexDirection: "row",
-    gap: 12,
+    gap: 14,
   },
-  secondaryButton: {
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#dce7f4",
-    borderRadius: 999,
-    borderWidth: 1,
+  header: {
+    backgroundColor: "#fbfcf8",
+    gap: 16,
+    paddingBottom: 10,
+    paddingHorizontal: 20,
+  },
+  heading: {
+    flex: 1,
+    gap: 8,
+    justifyContent: "center",
+    minWidth: 0,
+    paddingBottom: 4,
+  },
+  heroImage: {
+    height: 116,
+    marginRight: -4,
+    width: 142,
+  },
+  heroRow: {
+    alignItems: "flex-end",
     flexDirection: "row",
     gap: 8,
+    minHeight: 126,
+  },
+  optionCard: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#e6ece8",
+    borderRadius: 16,
+    borderWidth: 1,
+    boxShadow: "0 4px 12px rgba(23, 34, 48, 0.06)",
+    flexDirection: "row",
+    gap: 12,
+    minHeight: 84,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  optionCardPressed: {
+    opacity: 0.9,
+  },
+  optionCardSelected: {
+    backgroundColor: "#f4fbf0",
+    borderColor: "#3da847",
+  },
+  optionCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
+  },
+  optionDescription: {
+    color: "#334155",
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0,
+    lineHeight: 15,
+  },
+  optionImage: {
     height: 58,
+    width: 74,
+  },
+  optionLabel: {
+    color: "#172230",
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 18,
+  },
+  optionLabelSelected: {
+    color: "#278835",
+  },
+  options: {
+    gap: 10,
+  },
+  optionsContent: {
+    paddingBottom: 10,
+    paddingHorizontal: 20,
+  },
+  optionsScroll: {
+    flex: 1,
+  },
+  primaryButton: {
+    alignItems: "center",
+    backgroundColor: "#3da847",
+    borderRadius: 999,
+    boxShadow: "0 8px 14px rgba(47, 151, 59, 0.24)",
+    flex: 1,
+    flexDirection: "row",
+    gap: 10,
+    height: 54,
     justifyContent: "center",
-    paddingHorizontal: 18,
   },
-  secondaryButtonPressed: {
-    opacity: 0.86,
+  primaryButtonDisabled: {
+    backgroundColor: "#9acda0",
   },
-  secondaryButtonLabel: {
-    color: "#0757ff",
+  primaryButtonLabel: {
+    color: "#ffffff",
     fontSize: 16,
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 21,
-  },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: "#0757ff",
-    borderRadius: 999,
-    flex: 1,
-    flexDirection: "row",
-    gap: 10,
-    height: 58,
-    justifyContent: "center",
-    overflow: "hidden",
-    position: "relative",
-  },
-  primaryButtonPressed: {
-    opacity: 0.86,
-  },
-  primaryButtonDisabled: {
-    backgroundColor: "#9bb9ff",
-  },
-  primaryButtonLabel: {
-    color: "#ffffff",
-    fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 22,
     textAlign: "center",
   },
-  primaryButtonIcon: {
-    marginTop: 1,
+  progressFill: {
+    backgroundColor: "#2f973b",
+    borderRadius: 999,
+    height: "100%",
+  },
+  progressHeader: {
+    gap: 8,
+  },
+  progressRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+  },
+  progressTrack: {
+    backgroundColor: "#e5ebe7",
+    borderRadius: 999,
+    flex: 1,
+    height: 8,
+    overflow: "hidden",
+  },
+  screen: {
+    backgroundColor: "#fbfcf8",
+    flex: 1,
+  },
+  secondaryButton: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#e6ece8",
+    borderRadius: 999,
+    borderWidth: 1,
+    boxShadow: "0 5px 10px rgba(23, 34, 48, 0.05)",
+    flexDirection: "row",
+    gap: 7,
+    height: 54,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    minWidth: 94,
+  },
+  secondaryButtonLabel: {
+    color: "#172230",
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 18,
+  },
+  stepIconCircle: {
+    alignItems: "center",
+    backgroundColor: "#2f973b",
+    borderRadius: 21,
+    boxShadow: "0 7px 12px rgba(47, 151, 59, 0.24)",
+    height: 42,
+    justifyContent: "center",
+    width: 42,
+  },
+  stepLabel: {
+    color: "#2f973b",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0,
+    lineHeight: 16,
+  },
+  subtitle: {
+    color: "#344154",
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0,
+    lineHeight: 17,
+  },
+  title: {
+    color: "#172230",
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 31,
   },
 });

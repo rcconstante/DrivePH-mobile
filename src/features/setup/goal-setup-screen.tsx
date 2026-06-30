@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 
 import { useUserPreferences } from "@/context/user-preferences-context";
 import { SelectionCard, SetupScreen } from "@/features/setup/components/setup-screen";
-import { goalOptions, type GoalId } from "@/features/setup/preferences";
+import { goalOptions, setupHeroes, type GoalId } from "@/features/setup/preferences";
 
 export function GoalSetupScreen() {
   const router = useRouter();
@@ -21,14 +21,16 @@ export function GoalSetupScreen() {
       totalSteps={3}
       title="What's your goal?"
       subtitle="Where are you on your driving journey?"
+      heroImage={setupHeroes.goal.image}
+      heroImageLabel={setupHeroes.goal.imageLabel}
       primaryLabel="Continue"
       onPrimaryPress={handleContinue}
     >
       {goalOptions.map((goal) => (
         <SelectionCard
           key={goal.id}
-          icon={goal.icon}
-          iconColor={goal.iconColor}
+          image={goal.image}
+          imageLabel={goal.imageLabel}
           label={goal.label}
           description={goal.description}
           selected={selectedGoal === goal.id}

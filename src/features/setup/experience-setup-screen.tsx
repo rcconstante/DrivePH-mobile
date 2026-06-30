@@ -3,13 +3,17 @@ import { useCallback, useState } from "react";
 
 import { useUserPreferences } from "@/context/user-preferences-context";
 import { SelectionCard, SetupScreen } from "@/features/setup/components/setup-screen";
-import { experienceOptions, type ExperienceLevelId } from "@/features/setup/preferences";
+import {
+  experienceOptions,
+  setupHeroes,
+  type ExperienceLevelId,
+} from "@/features/setup/preferences";
 
 export function ExperienceSetupScreen() {
   const router = useRouter();
   const { preferences, updatePreferences } = useUserPreferences();
-  const [selectedExperience, setSelectedExperience] = useState<ExperienceLevelId | null>(
-    preferences.experienceLevel,
+  const [selectedExperience, setSelectedExperience] = useState<ExperienceLevelId>(
+    preferences.experienceLevel ?? "beginner",
   );
 
   const handleFinish = useCallback(() => {
@@ -21,16 +25,19 @@ export function ExperienceSetupScreen() {
     <SetupScreen
       currentStep={3}
       totalSteps={3}
-      title="Experience Level"
+      title={"Experience\nLevel"}
       subtitle="How confident are you behind the wheel?"
+      heroImage={setupHeroes.experience.image}
+      heroImageLabel={setupHeroes.experience.imageLabel}
       primaryLabel="Finish"
+      primaryIcon="check"
       onPrimaryPress={handleFinish}
     >
       {experienceOptions.map((experience) => (
         <SelectionCard
           key={experience.id}
-          icon={experience.icon}
-          iconColor={experience.iconColor}
+          image={experience.image}
+          imageLabel={experience.imageLabel}
           label={experience.label}
           description={experience.description}
           selected={selectedExperience === experience.id}
