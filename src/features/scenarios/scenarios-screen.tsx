@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useRouter } from "expo-router";
+import { useMemo, useRef, useState } from "react";
 import {
   Image,
   Pressable,
@@ -24,11 +25,15 @@ import {
   type ScenarioCategory,
   type ScenarioCategoryId,
 } from "@/features/scenarios/data";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 export function ScenariosScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ScenarioCategoryId>("all");
+  useScrollToTopOnFocus(scrollRef);
 
   const visibleScenarios = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -47,6 +52,7 @@ export function ScenariosScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollRef}
         testID="scenarios-screen"
         style={styles.scroll}
         contentInsetAdjustmentBehavior="automatic"
@@ -54,7 +60,7 @@ export function ScenariosScreen() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingBottom: Math.max(insets.bottom, 18) + 126,
+            paddingBottom: Math.max(insets.bottom, 18) + 152,
             paddingTop: Math.max(insets.top, 18),
           },
         ]}
@@ -66,14 +72,13 @@ export function ScenariosScreen() {
 
         <View style={styles.heroCard}>
           <View style={styles.heroCopy}>
+            <Text style={styles.heroTitle}>
+              Practice.{"\n"}
+              Decide.{"\n"}
+              Drive Safely.
+            </Text>
             <Text style={styles.heroText}>Learn by real-life situations and make better decisions on the road.</Text>
           </View>
-          <Image
-            source={require("../../assets/scenarios-assets/header.png")}
-            resizeMode="contain"
-            accessibilityLabel="Blue car driving through a scenario road"
-            style={styles.heroImage}
-          />
         </View>
 
         <View style={styles.searchBox}>
@@ -111,7 +116,16 @@ export function ScenariosScreen() {
         <View style={styles.scenarioList}>
           {visibleScenarios.length > 0 ? (
             visibleScenarios.map((scenario) => (
-              <ScenarioCard key={scenario.id} scenario={scenario} />
+              <ScenarioCard
+                key={scenario.id}
+                scenario={scenario}
+                onPress={() =>
+                  router.push({
+                    pathname: "/scenarios/[scenarioId]",
+                    params: { scenarioId: scenario.id },
+                  })
+                }
+              />
             ))
           ) : (
             <View style={styles.emptyCard}>
@@ -122,19 +136,27 @@ export function ScenariosScreen() {
         </View>
 
         <View style={styles.challengeCard}>
-          <Image
-            source={require("../../assets/scenarios-assets/trophy.png")}
-            resizeMode="contain"
-            accessibilityLabel="Trophy reward"
-            style={styles.challengeImage}
-          />
-          <View style={styles.challengeCopy}>
-            <Text style={styles.challengeTitle}>Test Your Skills</Text>
-            <Text style={styles.challengeText}>Complete scenarios and earn coins and badges.</Text>
+          <View style={styles.challengeTopRow}>
+            <Image
+              source={require("../../assets/scenarios-assets/trophy.png")}
+              resizeMode="contain"
+              accessibilityLabel="Trophy reward"
+              style={styles.challengeImage}
+            />
+            <View style={styles.challengeCopy}>
+              <Text style={styles.challengeTitle}>Test Your Skills</Text>
+              <Text style={styles.challengeText}>Complete scenarios and earn coins and badges.</Text>
+            </View>
           </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Start challenge"
+            onPress={() =>
+              router.push({
+                pathname: "/scenarios/[scenarioId]",
+                params: { scenarioId: scenarios[0]?.id ?? "right-of-way-uncontrolled-intersection" },
+              })
+            }
             style={({ pressed }) => [styles.challengeButton, pressed ? styles.pressed : null]}
           >
             <Text style={styles.challengeButtonText}>Start</Text>
@@ -169,7 +191,7 @@ function ScenarioCategoryButton({
         pressed ? styles.pressed : null,
       ]}
     >
-      <Icon color={selected ? "#0757ff" : category.color} size={16} strokeWidth={2} />
+      <Icon color={selected ? "#2f973b" : category.color} size={16} strokeWidth={2} />
       <Text style={[styles.categoryText, selected ? styles.categoryTextSelected : null]}>
         {category.label}
       </Text>
@@ -177,13 +199,14 @@ function ScenarioCategoryButton({
   );
 }
 
-function ScenarioCard({ scenario }: { scenario: Scenario }) {
+function ScenarioCard({ onPress, scenario }: { onPress: () => void; scenario: Scenario }) {
   const theme = difficultyTheme[scenario.difficulty];
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={scenario.title}
+      onPress={onPress}
       style={({ pressed }) => [styles.scenarioCard, pressed ? styles.pressed : null]}
     >
       <Image
@@ -205,7 +228,7 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
           <Text style={styles.metaDivider}>|</Text>
           <Text style={styles.stepsText}>{scenario.steps} Steps</Text>
           <View style={styles.chevronCircle}>
-            <ChevronRightIcon color="#0757ff" size={18} strokeWidth={2.4} />
+            <ChevronRightIcon color="#2f973b" size={18} strokeWidth={2.4} />
           </View>
         </View>
       </View>
@@ -234,8 +257,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   categoryButtonSelected: {
-    backgroundColor: "#f5f9ff",
-    borderColor: "#0757ff",
+    backgroundColor: "#effbf2",
+    borderColor: "#2f973b",
   },
   categoryList: {
     gap: 10,
@@ -250,17 +273,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   categoryTextSelected: {
-    color: "#0757ff",
+    color: "#2f973b",
   },
   challengeButton: {
     alignItems: "center",
     backgroundColor: "#3da847",
-    borderRadius: 999,
+    borderRadius: 14,
     flexDirection: "row",
     gap: 5,
-    height: 32,
+    height: 42,
     justifyContent: "center",
-    paddingHorizontal: 14,
+    width: "100%",
   },
   challengeButtonText: {
     color: "#ffffff",
@@ -270,14 +293,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   challengeCard: {
-    alignItems: "center",
+    alignItems: "stretch",
     backgroundColor: "#effbf2",
     borderColor: "#bce9c3",
     borderRadius: 16,
     borderWidth: 1,
-    flexDirection: "row",
-    gap: 10,
-    padding: 10,
+    gap: 12,
+    padding: 12,
   },
   challengeCopy: {
     flex: 1,
@@ -287,6 +309,11 @@ const styles = StyleSheet.create({
   challengeImage: {
     height: 46,
     width: 58,
+  },
+  challengeTopRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
   },
   challengeText: {
     color: "#5d6875",
@@ -304,7 +331,7 @@ const styles = StyleSheet.create({
   },
   chevronCircle: {
     alignItems: "center",
-    backgroundColor: "#f0f5ff",
+    backgroundColor: "#effbf2",
     borderRadius: 15,
     height: 30,
     justifyContent: "center",
@@ -351,28 +378,31 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   heroCard: {
-    minHeight: 118,
+    backgroundColor: "#e8f7df",
+    borderColor: "#cfeecf",
+    borderRadius: 16,
+    borderWidth: 1,
+    minHeight: 116,
     overflow: "hidden",
-    position: "relative",
+    padding: 14,
   },
   heroCopy: {
-    paddingTop: 2,
+    gap: 6,
     zIndex: 1,
-  },
-  heroImage: {
-    bottom: 0,
-    height: 118,
-    position: "absolute",
-    right: -12,
-    width: 210,
   },
   heroText: {
     color: "#52627e",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0,
-    lineHeight: 17,
-    maxWidth: 160,
+    lineHeight: 15,
+  },
+  heroTitle: {
+    color: "#061b49",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 22,
   },
   metaDivider: {
     color: "#a0aabe",
@@ -476,7 +506,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   seeAll: {
-    color: "#0757ff",
+    color: "#2f973b",
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0,

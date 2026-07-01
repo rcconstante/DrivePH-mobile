@@ -2,13 +2,11 @@ import { useRouter } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { PlusIcon } from "@/components/ui/icons";
+import { useCoins } from "@/features/coins/coin-store";
 
-type CoinBalancePillProps = {
-  balance?: number;
-};
-
-export function CoinBalancePill({ balance = 320 }: CoinBalancePillProps) {
+export function CoinBalancePill() {
   const router = useRouter();
+  const { balance } = useCoins();
 
   return (
     <Pressable

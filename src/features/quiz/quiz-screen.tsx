@@ -1,46 +1,52 @@
+import { useRouter } from "expo-router";
+import { useRef } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { CoinBalancePill } from "@/features/coins/components/coin-balance-pill";
-
-const quizCategories = [
-  {
-    id: "road-signs",
-    image: require("../../assets/cute-assets/parking-sign.png"),
-    imageLabel: "Road sign",
-    questions: 12,
-    title: "Road Signs",
-  },
-  {
-    id: "traffic-rules",
-    image: require("../../assets/cute-assets/driving-warning.png"),
-    imageLabel: "Traffic light and warning",
-    questions: 15,
-    title: "Traffic Rules",
-  },
-  {
-    id: "safe-driving",
-    image: require("../../assets/cute-assets/shield.png"),
-    imageLabel: "Safety shield",
-    questions: 10,
-    title: "Safe Driving",
-  },
-  {
-    id: "license-types",
-    image: require("../../assets/cute-assets/student-permit.png"),
-    imageLabel: "License card",
-    questions: 8,
-    title: "License Types",
-  },
-];
+import {
+  getFeaturedQuizSet,
+  getQuizCategoryQuestionCount,
+  getQuizSetsByCategoryId,
+  quizCategories,
+  type QuizCategory,
+} from "@/features/quiz/data";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 export function QuizScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
+  useScrollToTopOnFocus(scrollRef);
+
+  const openQuiz = (quizId: QuizCategory["id"]) => {
+    router.push({
+      pathname: "/quiz/[quizId]",
+      params: { quizId },
+    });
+  };
+
+  const openFeaturedQuiz = () => {
+    const featuredSet = getFeaturedQuizSet();
+
+    if (featuredSet == null) {
+      return;
+    }
+
+    router.push({
+      pathname: "/quiz/[quizId]/[setId]",
+      params: {
+        quizId: featuredSet.categoryId,
+        setId: featuredSet.id,
+      },
+    });
+  };
 
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollRef}
         testID="quiz-screen"
         style={styles.scroll}
         contentInsetAdjustmentBehavior="automatic"
@@ -62,9 +68,14 @@ export function QuizScreen() {
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>
               Test your knowledge{"\n"}
-              and earn points!
+              and earn coins!
             </Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Start quiz" style={styles.startButton}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Start quiz"
+              onPress={openFeaturedQuiz}
+              style={styles.startButton}
+            >
               <Text style={styles.startButtonText}>Start Quiz</Text>
               <ChevronRightIcon color="#ffffff" size={16} strokeWidth={2.2} />
             </Pressable>
@@ -83,7 +94,7 @@ export function QuizScreen() {
 
         <View style={styles.categoryGrid}>
           {quizCategories.map((category) => (
-            <QuizCategoryCard key={category.id} category={category} />
+            <QuizCategoryCard key={category.id} category={category} onPress={() => openQuiz(category.id)} />
           ))}
         </View>
       </ScrollView>
@@ -91,13 +102,15 @@ export function QuizScreen() {
   );
 }
 
-type QuizCategory = typeof quizCategories[number];
+function QuizCategoryCard({ category, onPress }: { category: QuizCategory; onPress: () => void }) {
+  const setCount = getQuizSetsByCategoryId(category.id).length;
+  const questionCount = getQuizCategoryQuestionCount(category.id);
 
-function QuizCategoryCard({ category }: { category: QuizCategory }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${category.title}, ${category.questions} questions`}
+      accessibilityLabel={`${category.title}, ${questionCount} questions`}
+      onPress={onPress}
       style={({ pressed }) => [styles.categoryCard, pressed ? styles.cardPressed : null]}
     >
       <Image
@@ -108,7 +121,9 @@ function QuizCategoryCard({ category }: { category: QuizCategory }) {
       />
       <View style={styles.categoryCopy}>
         <Text numberOfLines={1} style={styles.categoryTitle}>{category.title}</Text>
-        <Text style={styles.categoryMeta}>{category.questions} Questions</Text>
+        <Text style={styles.categoryMeta}>
+          {setCount} {setCount === 1 ? "Set" : "Sets"} | {questionCount} Questions
+        </Text>
       </View>
     </Pressable>
   );
@@ -219,7 +234,7 @@ const styles = StyleSheet.create({
   startButton: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "#4caf50",
+    backgroundColor: "#2f973b",
     borderRadius: 999,
     flexDirection: "row",
     gap: 5,

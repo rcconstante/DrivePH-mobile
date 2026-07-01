@@ -132,7 +132,6 @@ export function SetupScreen({
               ]}
             >
               <ArrowLeftIcon color="#172230" size={18} strokeWidth={2.1} />
-              <Text style={styles.secondaryButtonLabel}>Back</Text>
             </Pressable>
           ) : null}
 
@@ -372,15 +371,7 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 54,
     justifyContent: "center",
-    paddingHorizontal: 16,
-    minWidth: 94,
-  },
-  secondaryButtonLabel: {
-    color: "#172230",
-    fontSize: 14,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 18,
+    width: 54,
   },
   stepIconCircle: {
     alignItems: "center",

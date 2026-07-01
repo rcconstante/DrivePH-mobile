@@ -1,43 +1,23 @@
 import { useRouter } from "expo-router";
+import { useRef } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ArrowLeftIcon, CheckIcon, ClipboardCheckIcon } from "@/components/ui/icons";
-
-const transactions = [
-  {
-    id: "quiz-completed",
-    title: "Quiz Completed",
-    description: "Traffic Signs Quiz",
-    amount: "+10",
-    icon: CheckIcon,
-    color: "#4caf50",
-  },
-  {
-    id: "daily-check-in",
-    title: "Daily Check-in",
-    description: "Daily reward claimed",
-    amount: "+5",
-    icon: ClipboardCheckIcon,
-    color: "#7c5cff",
-  },
-  {
-    id: "lesson-completed",
-    title: "Lesson Completed",
-    description: "Road Signs Guide",
-    amount: "+15",
-    icon: CheckIcon,
-    color: "#4b8df7",
-  },
-];
+import { useCoins, type CoinTransaction } from "@/features/coins/coin-store";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 export function CoinHistoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
+  const { balance, transactions } = useCoins();
+  useScrollToTopOnFocus(scrollRef);
 
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollRef}
         testID="coin-history-screen"
         style={styles.scroll}
         contentInsetAdjustmentBehavior="automatic"
@@ -71,40 +51,59 @@ export function CoinHistoryScreen() {
             style={styles.summaryCoin}
           />
           <View style={styles.summaryCopy}>
-            <Text style={styles.summaryTitle}>250 Coins</Text>
+            <Text style={styles.summaryTitle}>{balance.toLocaleString()} Coins</Text>
             <Text style={styles.summaryText}>Recent rewards and coin activity.</Text>
           </View>
         </View>
 
         <View style={styles.listCard}>
-          {transactions.map((transaction) => {
-            const Icon = transaction.icon;
-
-            return (
-              <View key={transaction.id} style={styles.transactionRow}>
-                <View style={[styles.transactionIcon, { backgroundColor: transaction.color }]}>
-                  <Icon color="#ffffff" size={17} strokeWidth={2.2} />
-                </View>
-                <View style={styles.transactionCopy}>
-                  <Text style={styles.transactionTitle}>{transaction.title}</Text>
-                  <Text style={styles.transactionDescription}>{transaction.description}</Text>
-                </View>
-                <View style={styles.amountRow}>
-                  <Text style={styles.amountText}>{transaction.amount}</Text>
-                  <Image
-                    source={require("../../assets/cute-assets/coin.png")}
-                    resizeMode="contain"
-                    accessibilityLabel="Coin"
-                    style={styles.amountCoin}
-                  />
-                </View>
-              </View>
-            );
-          })}
+          {transactions.map((transaction) => (
+            <TransactionRow key={transaction.id} transaction={transaction} />
+          ))}
         </View>
       </ScrollView>
     </View>
   );
+}
+
+function TransactionRow({ transaction }: { transaction: CoinTransaction }) {
+  const Icon = transaction.type === "purchase" ? ClipboardCheckIcon : CheckIcon;
+
+  return (
+    <View style={styles.transactionRow}>
+      <View style={[styles.transactionIcon, { backgroundColor: getTransactionColor(transaction.type) }]}>
+        <Icon color="#ffffff" size={17} strokeWidth={2.2} />
+      </View>
+      <View style={styles.transactionCopy}>
+        <Text style={styles.transactionTitle}>{transaction.title}</Text>
+        <Text style={styles.transactionDescription}>{transaction.description}</Text>
+      </View>
+      <View style={styles.amountRow}>
+        <Text style={styles.amountText}>
+          {transaction.amount > 0 ? "+" : ""}
+          {transaction.amount.toLocaleString()}
+        </Text>
+        <Image
+          source={require("../../assets/cute-assets/coin.png")}
+          resizeMode="contain"
+          accessibilityLabel="Coin"
+          style={styles.amountCoin}
+        />
+      </View>
+    </View>
+  );
+}
+
+function getTransactionColor(type: CoinTransaction["type"]) {
+  switch (type) {
+    case "purchase":
+      return "#f59e0b";
+    case "spend":
+      return "#ef4444";
+    case "earn":
+    default:
+      return "#4caf50";
+  }
 }
 
 const styles = StyleSheet.create({

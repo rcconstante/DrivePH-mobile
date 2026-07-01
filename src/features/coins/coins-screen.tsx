@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useRef } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,13 +10,15 @@ import {
   ChevronRightIcon,
   ClipboardCheckIcon,
 } from "@/components/ui/icons";
+import { useCoins, type CoinTransaction } from "@/features/coins/coin-store";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 const earnTasks = [
   {
     id: "quiz",
     title: "Complete a Quiz",
     description: "Earn coins by completing quizzes",
-    reward: "+10",
+    amount: 10,
     icon: ClipboardCheckIcon,
     color: "#4caf50",
   },
@@ -23,27 +26,32 @@ const earnTasks = [
     id: "lesson",
     title: "Complete a Lesson",
     description: "Finish a lesson and earn coins",
-    reward: "+15",
+    amount: 15,
     icon: BookOpenIcon,
-    color: "#4b8df7",
+    color: "#2f973b",
   },
   {
     id: "check-in",
     title: "Daily Check-in",
     description: "Check in daily to earn coins",
-    reward: "+5",
+    amount: 5,
     icon: CheckIcon,
-    color: "#7c5cff",
+    color: "#f59e0b",
   },
 ];
 
 export function CoinsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
+  const { balance, earnCoins, transactions } = useCoins();
+  const recentTransactions = transactions.slice(0, 3);
+  useScrollToTopOnFocus(scrollRef);
 
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollRef}
         testID="coins-screen"
         style={styles.scroll}
         contentInsetAdjustmentBehavior="automatic"
@@ -74,7 +82,7 @@ export function CoinsScreen() {
                 accessibilityLabel="Coin"
                 style={styles.balanceCoin}
               />
-              <Text style={styles.balanceValue}>250</Text>
+              <Text style={styles.balanceValue}>{balance.toLocaleString()}</Text>
             </View>
             <Text style={styles.balanceUnit}>Coins</Text>
             <Pressable
@@ -115,7 +123,20 @@ export function CoinsScreen() {
               const Icon = task.icon;
 
               return (
-                <View key={task.id} style={styles.taskRow}>
+                <Pressable
+                  key={task.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${task.title}, earn ${task.amount} coins`}
+                  onPress={() =>
+                    earnCoins({
+                      sourceId: task.id,
+                      title: task.title,
+                      description: task.description,
+                      amount: task.amount,
+                    })
+                  }
+                  style={({ pressed }) => [styles.taskRow, pressed ? styles.rowPressed : null]}
+                >
                   <View style={[styles.taskIcon, { backgroundColor: task.color }]}>
                     <Icon color="#ffffff" size={18} strokeWidth={2} />
                   </View>
@@ -124,7 +145,7 @@ export function CoinsScreen() {
                     <Text style={styles.taskDescription}>{task.description}</Text>
                   </View>
                   <View style={styles.rewardRow}>
-                    <Text style={styles.rewardText}>{task.reward}</Text>
+                    <Text style={styles.rewardText}>+{task.amount}</Text>
                     <Image
                       source={require("../../assets/cute-assets/coin.png")}
                       resizeMode="contain"
@@ -132,7 +153,7 @@ export function CoinsScreen() {
                       style={styles.rewardCoin}
                     />
                   </View>
-                </View>
+                </Pressable>
               );
             })}
           </View>
@@ -150,21 +171,44 @@ export function CoinsScreen() {
             </Pressable>
           </View>
           <View style={styles.listCard}>
-            <View style={styles.taskRow}>
-              <View style={[styles.taskIcon, { backgroundColor: "#4caf50" }]}>
-                <CheckIcon color="#ffffff" size={18} strokeWidth={2} />
-              </View>
-              <View style={styles.taskCopy}>
-                <Text style={styles.taskTitle}>Quiz Completed</Text>
-                <Text style={styles.taskDescription}>Traffic Signs Quiz</Text>
-              </View>
-              <Text style={styles.rewardText}>+10</Text>
-            </View>
+            {recentTransactions.map((transaction) => (
+              <TransactionRow key={transaction.id} transaction={transaction} />
+            ))}
           </View>
         </View>
       </ScrollView>
     </View>
   );
+}
+
+function TransactionRow({ transaction }: { transaction: CoinTransaction }) {
+  return (
+    <View style={styles.taskRow}>
+      <View style={[styles.taskIcon, { backgroundColor: getTransactionColor(transaction.type) }]}>
+        <CheckIcon color="#ffffff" size={18} strokeWidth={2} />
+      </View>
+      <View style={styles.taskCopy}>
+        <Text style={styles.taskTitle}>{transaction.title}</Text>
+        <Text style={styles.taskDescription}>{transaction.description}</Text>
+      </View>
+      <Text style={styles.rewardText}>
+        {transaction.amount > 0 ? "+" : ""}
+        {transaction.amount.toLocaleString()}
+      </Text>
+    </View>
+  );
+}
+
+function getTransactionColor(type: CoinTransaction["type"]) {
+  switch (type) {
+    case "purchase":
+      return "#f59e0b";
+    case "spend":
+      return "#ef4444";
+    case "earn":
+    default:
+      return "#4caf50";
+  }
 }
 
 const styles = StyleSheet.create({
@@ -309,6 +353,9 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 17,
+  },
+  rowPressed: {
+    opacity: 0.86,
   },
   screen: {
     backgroundColor: "#fbfcf8",

@@ -1,66 +1,40 @@
 import { useRouter } from "expo-router";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRef, useState } from "react";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ArrowLeftIcon, CheckIcon } from "@/components/ui/icons";
-
-const coinPackages = [
-  {
-    id: "100",
-    title: "100 Coins",
-    subtitle: "Starter Pack",
-    price: "P49.00",
-    image: require("../../assets/cute-assets/100coins.png"),
-  },
-  {
-    id: "500",
-    title: "500 Coins",
-    subtitle: "Value Pack",
-    price: "P199.00",
-    badge: "Most Popular",
-    image: require("../../assets/cute-assets/500coins.png"),
-  },
-  {
-    id: "1200",
-    title: "1,200 Coins",
-    subtitle: "Premium Pack",
-    price: "P399.00",
-    badge: "20% Off",
-    image: require("../../assets/cute-assets/1200coins.png"),
-  },
-  {
-    id: "2500",
-    title: "2,500 Coins",
-    subtitle: "Pro Pack",
-    price: "P699.00",
-    badge: "30% Off",
-    image: require("../../assets/cute-assets/2500coins.png"),
-  },
-  {
-    id: "5000",
-    title: "5,000 Coins",
-    subtitle: "Master Pack",
-    price: "P1,199.00",
-    badge: "33% Off",
-    image: require("../../assets/cute-assets/5000coins.png"),
-  },
-  {
-    id: "10000",
-    title: "10,000 Coins",
-    subtitle: "Ultimate Pack",
-    price: "P1,999.00",
-    badge: "33% Off",
-    image: require("../../assets/cute-assets/10000coins.png"),
-  },
-];
+import { useCoins } from "@/features/coins/coin-store";
+import { coinPackages, type CoinPackage } from "@/features/coins/data";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 export function BuyCoinsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
+  const { purchasePackage } = useCoins();
+  const [pendingPackage, setPendingPackage] = useState<CoinPackage | null>(null);
+  const [completedPackage, setCompletedPackage] = useState<CoinPackage | null>(null);
+  useScrollToTopOnFocus(scrollRef);
+
+  const confirmPurchase = () => {
+    if (pendingPackage == null) {
+      return;
+    }
+
+    const packageId = pendingPackage.id;
+    setPendingPackage(null);
+    const completedPurchase = purchasePackage(packageId);
+
+    if (completedPurchase != null) {
+      setCompletedPackage(completedPurchase);
+    }
+  };
 
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollRef}
         testID="buy-coins-screen"
         style={styles.scroll}
         contentInsetAdjustmentBehavior="automatic"
@@ -111,6 +85,7 @@ export function BuyCoinsScreen() {
               key={item.id}
               accessibilityRole="button"
               accessibilityLabel={`${item.title}, ${item.price}`}
+              onPress={() => setPendingPackage(item)}
               style={({ pressed }) => [
                 styles.packageCard,
                 item.id === "500" ? styles.packageCardFeatured : null,
@@ -172,7 +147,102 @@ export function BuyCoinsScreen() {
           <Text style={styles.secureText}>Secure payment</Text>
         </View>
       </ScrollView>
+
+      <PurchaseModal
+        mode="confirm"
+        onClose={() => setPendingPackage(null)}
+        onConfirm={confirmPurchase}
+        packageItem={pendingPackage}
+        visible={pendingPackage != null}
+      />
+
+      <PurchaseModal
+        mode="success"
+        onClose={() => setCompletedPackage(null)}
+        packageItem={completedPackage}
+        visible={completedPackage != null}
+      />
     </View>
+  );
+}
+
+function PurchaseModal({
+  mode,
+  onClose,
+  onConfirm,
+  packageItem,
+  visible,
+}: {
+  mode: "confirm" | "success";
+  onClose: () => void;
+  onConfirm?: () => void;
+  packageItem: CoinPackage | null;
+  visible: boolean;
+}) {
+  if (packageItem == null) {
+    return null;
+  }
+
+  const success = mode === "success";
+
+  return (
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.purchaseModal}>
+          <View style={[styles.modalIcon, success ? styles.modalIconSuccess : null]}>
+            {success ? (
+              <CheckIcon color="#ffffff" size={22} strokeWidth={2.4} />
+            ) : (
+              <Image
+                source={packageItem.image}
+                resizeMode="contain"
+                accessibilityLabel={packageItem.title}
+                style={styles.modalCoinImage}
+              />
+            )}
+          </View>
+          <Text style={styles.modalTitle}>
+            {success ? "Purchase Successful" : "Confirm Purchase"}
+          </Text>
+          <Text style={styles.modalText}>
+            {success
+              ? `${packageItem.title} was added to your balance.`
+              : `Buy ${packageItem.title} for ${packageItem.price}? This demo purchase will complete immediately.`}
+          </Text>
+          <View style={styles.modalActions}>
+            {success ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close purchase confirmation"
+                onPress={onClose}
+                style={({ pressed }) => [styles.modalPrimaryButton, pressed ? styles.cardPressed : null]}
+              >
+                <Text style={styles.modalPrimaryText}>Done</Text>
+              </Pressable>
+            ) : (
+              <>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel purchase"
+                  onPress={onClose}
+                  style={({ pressed }) => [styles.modalSecondaryButton, pressed ? styles.cardPressed : null]}
+                >
+                  <Text style={styles.modalSecondaryText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Confirm purchase"
+                  onPress={onConfirm}
+                  style={({ pressed }) => [styles.modalPrimaryButton, pressed ? styles.cardPressed : null]}
+                >
+                  <Text style={styles.modalPrimaryText}>Confirm</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -366,7 +436,7 @@ const styles = StyleSheet.create({
   },
   pricePill: {
     alignItems: "center",
-    backgroundColor: "#edf4ff",
+    backgroundColor: "#effbf2",
     borderRadius: 10,
     height: 34,
     justifyContent: "center",
@@ -374,7 +444,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   priceText: {
-    color: "#0757ff",
+    color: "#2f973b",
     fontSize: 13,
     fontWeight: "900",
     letterSpacing: 0,
@@ -422,6 +492,87 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 13,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+  },
+  modalCoinImage: {
+    height: 54,
+    width: 74,
+  },
+  modalIcon: {
+    alignItems: "center",
+    backgroundColor: "#effbf2",
+    borderRadius: 22,
+    height: 68,
+    justifyContent: "center",
+    width: 68,
+  },
+  modalIconSuccess: {
+    backgroundColor: "#4caf50",
+  },
+  modalOverlay: {
+    alignItems: "center",
+    backgroundColor: "rgba(6, 27, 73, 0.38)",
+    flex: 1,
+    justifyContent: "center",
+    padding: 22,
+  },
+  modalPrimaryButton: {
+    alignItems: "center",
+    backgroundColor: "#4caf50",
+    borderRadius: 999,
+    flex: 1,
+    height: 42,
+    justifyContent: "center",
+  },
+  modalPrimaryText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 17,
+  },
+  modalSecondaryButton: {
+    alignItems: "center",
+    backgroundColor: "#eef3f8",
+    borderRadius: 999,
+    flex: 1,
+    height: 42,
+    justifyContent: "center",
+  },
+  modalSecondaryText: {
+    color: "#5d6875",
+    fontSize: 13,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 17,
+  },
+  modalText: {
+    color: "#5d6875",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0,
+    lineHeight: 17,
+    textAlign: "center",
+  },
+  modalTitle: {
+    color: "#172230",
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 22,
+    textAlign: "center",
+  },
+  purchaseModal: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    gap: 12,
+    padding: 18,
+    width: "100%",
   },
   topBar: {
     alignItems: "center",
@@ -479,7 +630,7 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   unlockTitle: {
-    color: "#0757ff",
+    color: "#2f973b",
     fontSize: 15,
     fontWeight: "900",
     letterSpacing: 0,

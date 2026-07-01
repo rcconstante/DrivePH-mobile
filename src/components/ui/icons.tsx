@@ -13,13 +13,16 @@ import {
   ChevronRight,
   ClipboardCheck,
   CloudRain,
+  Earth,
   FileText,
   Grid2x2,
   House,
   Info,
   LifeBuoy,
   Map,
+  Moon,
   Plus,
+  RefreshCw,
   Road,
   Search,
   Settings,
@@ -27,6 +30,7 @@ import {
   Siren,
   SlidersHorizontal,
   SquareParking,
+  Sun,
   TrafficCone,
 } from "lucide-react-native";
 
@@ -76,14 +80,18 @@ export const BadgeCheckIcon = createIcon(BadgeCheck as unknown as LucideNativeIc
 export const BarChartIcon = createIcon(BarChart3 as unknown as LucideNativeIcon);
 export const BookmarkIcon = createIcon(Bookmark as unknown as LucideNativeIcon);
 export const CloudRainIcon = createIcon(CloudRain as unknown as LucideNativeIcon);
+export const EarthIcon = createIcon(Earth as unknown as LucideNativeIcon);
 export const FileTextIcon = createIcon(FileText as unknown as LucideNativeIcon);
 export const GridIcon = createIcon(Grid2x2 as unknown as LucideNativeIcon);
 export const InfoIcon = createIcon(Info as unknown as LucideNativeIcon);
 export const LifeBuoyIcon = createIcon(LifeBuoy as unknown as LucideNativeIcon);
 export const MapIcon = createIcon(Map as unknown as LucideNativeIcon);
+export const MoonIcon = createIcon(Moon as unknown as LucideNativeIcon);
 export const PlusIcon = createIcon(Plus as unknown as LucideNativeIcon);
+export const RefreshIcon = createIcon(RefreshCw as unknown as LucideNativeIcon);
 export const SignpostIcon = createIcon(Signpost as unknown as LucideNativeIcon);
 export const SirenIcon = createIcon(Siren as unknown as LucideNativeIcon);
 export const SlidersHorizontalIcon = createIcon(SlidersHorizontal as unknown as LucideNativeIcon);
 export const SquareParkingIcon = createIcon(SquareParking as unknown as LucideNativeIcon);
+export const SunIcon = createIcon(Sun as unknown as LucideNativeIcon);
 export const TrafficConeIcon = createIcon(TrafficCone as unknown as LucideNativeIcon);

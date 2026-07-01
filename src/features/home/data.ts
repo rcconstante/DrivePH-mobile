@@ -1,6 +1,6 @@
 import type { ImageSourcePropType } from "react-native";
 
-export type ExploreRoute = "/learn" | "/quiz" | "/scenarios" | "/settings/index";
+export type ExploreRoute = "/learn" | "/quiz" | "/scenarios" | "/settings";
 
 export type ExploreCard = {
   id: string;
@@ -56,7 +56,7 @@ export const exploreCards: ExploreCard[] = [
     id: "saved",
     image: require("../../assets/cute-assets/bookmark.png") as ImageSourcePropType,
     imageLabel: "Bookmark",
-    route: "/settings/index",
+    route: "/settings",
     title: "Saved",
   },
 ];

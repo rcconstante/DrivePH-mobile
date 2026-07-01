@@ -24,8 +24,8 @@ export const colors = {
     default: "#d1d5db",
   })!,
   primary: Platform.select({
-    ios: Color.ios.systemBlue,
-    android: Color.android.dynamic.primary,
-    default: "#2563eb",
+    ios: Color.ios.systemGreen,
+    android: "#2f973b",
+    default: "#2f973b",
   })!,
 } satisfies Record<string, ColorValue>;

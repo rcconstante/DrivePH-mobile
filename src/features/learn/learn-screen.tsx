@@ -1,22 +1,27 @@
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { CoinBalancePill } from "@/features/coins/components/coin-balance-pill";
 import {
-  getTopicProgress,
+  getTopicStageCount,
   learnCategories,
   learnTopics,
   type LearnCategoryId,
   type LearnTopic,
 } from "@/features/learn/data";
+import { useLearnProgress } from "@/features/learn/learn-progress-store";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 export function LearnScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
+  const { getCompletedStageCount, getTopicProgressPercent } = useLearnProgress();
   const [selectedCategory, setSelectedCategory] = useState<LearnCategoryId>("all");
+  useScrollToTopOnFocus(scrollRef);
 
   const visibleTopics = useMemo(
     () =>
@@ -36,6 +41,7 @@ export function LearnScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollRef}
         testID="learn-screen"
         style={styles.scroll}
         contentInsetAdjustmentBehavior="automatic"
@@ -96,23 +102,46 @@ export function LearnScreen() {
         </ScrollView>
 
         <View style={styles.topicList}>
-          {visibleTopics.map((topic) => (
-            <LearnTopicCard key={topic.id} topic={topic} onPress={() => handleTopicPress(topic)} />
-          ))}
+          {visibleTopics.map((topic) => {
+            const totalStages = getTopicStageCount();
+            const completedStages = getCompletedStageCount(topic.id);
+            const progressPercent = getTopicProgressPercent(topic.id, totalStages);
+
+            return (
+              <LearnTopicCard
+                key={topic.id}
+                completedStages={completedStages}
+                onPress={() => handleTopicPress(topic)}
+                progressPercent={progressPercent}
+                topic={topic}
+                totalStages={totalStages}
+              />
+            );
+          })}
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function LearnTopicCard({ onPress, topic }: { onPress: () => void; topic: LearnTopic }) {
-  const percent = getTopicProgress(topic.completedTopics, topic.totalTopics);
-
+function LearnTopicCard({
+  completedStages,
+  onPress,
+  progressPercent,
+  topic,
+  totalStages,
+}: {
+  completedStages: number;
+  onPress: () => void;
+  progressPercent: number;
+  topic: LearnTopic;
+  totalStages: number;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${topic.title}, ${topic.completedTopics} of ${topic.totalTopics}`}
-      accessibilityHint="Opens mock topic detail"
+      accessibilityLabel={`${topic.title}, ${completedStages} of ${totalStages} stages completed`}
+      accessibilityHint="Opens topic detail"
       onPress={onPress}
       style={({ pressed }) => [styles.topicCard, pressed ? styles.cardPressed : null]}
     >
@@ -129,14 +158,16 @@ function LearnTopicCard({ onPress, topic }: { onPress: () => void; topic: LearnT
           {topic.description}
         </Text>
         <View style={styles.topicTrack}>
-          <View style={[styles.topicFill, { width: `${percent}%` }]} />
+          <View style={styles.topicProgressBar}>
+            <View style={[styles.topicFill, { width: `${progressPercent}%` }]} />
+          </View>
+          <Text style={styles.topicCount}>
+          {completedStages}/{totalStages}
+          </Text>
         </View>
       </View>
 
       <View style={styles.topicMeta}>
-        <Text style={styles.topicCount}>
-          {topic.completedTopics}/{topic.totalTopics}
-        </Text>
         <ChevronRightIcon color="#8f9aa6" size={20} strokeWidth={2} />
       </View>
     </Pressable>
@@ -286,11 +317,17 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   topicTrack: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 7,
+    marginTop: 2,
+    width: 112,
+  },
+  topicProgressBar: {
     backgroundColor: "#e7ece8",
     borderRadius: 999,
+    flex: 1,
     height: 5,
-    marginTop: 2,
     overflow: "hidden",
-    width: 86,
   },
 });

@@ -1,21 +1,26 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SearchIcon } from "@/components/ui/icons";
+import { useCoins } from "@/features/coins/coin-store";
 import { HomeHeader } from "@/features/home/components/home-header";
 import { HomeNotificationsModal } from "@/features/home/components/home-notifications-modal";
 import { HomeSearchModal } from "@/features/home/components/home-search-modal";
 import { exploreCards, homeNotifications, type ExploreCard } from "@/features/home/data";
 import { useHomeSearch } from "@/features/home/hooks/use-home-search";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
   const homeSearch = useHomeSearch();
+  const { balance } = useCoins();
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isNotificationsOpen, setNotificationsOpen] = useState(false);
+  useScrollToTopOnFocus(scrollRef);
 
   const handleExplorePress = (card: ExploreCard) => {
     setSearchOpen(false);
@@ -25,14 +30,14 @@ export function HomeScreen() {
   return (
     <View style={styles.screen}>
       <HomeHeader
-        coinBalance={230}
+        coinBalance={balance}
         hasUnreadNotification
         onCoinPress={() => router.push("/coins")}
         onNotificationPress={() => setNotificationsOpen(true)}
-        onSearchPress={() => setSearchOpen(true)}
       />
 
       <ScrollView
+        ref={scrollRef}
         testID="home-screen"
         style={styles.scroll}
         contentInsetAdjustmentBehavior="automatic"
@@ -155,7 +160,7 @@ const styles = StyleSheet.create({
   },
   driverCard: {
     alignItems: "center",
-    backgroundColor: "#eaf5ff",
+    backgroundColor: "#e8f7df",
     borderRadius: 20,
     flexDirection: "row",
     minHeight: 134,
@@ -188,7 +193,7 @@ const styles = StyleSheet.create({
   exploreCard: {
     alignItems: "center",
     backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
+    borderColor: "#e6ece8",
     borderRadius: 14,
     borderWidth: 1,
     flexBasis: "31.3%",

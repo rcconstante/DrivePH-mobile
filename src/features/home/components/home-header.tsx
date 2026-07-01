@@ -2,14 +2,13 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandLogo } from "@/components/ui/brand-logo";
-import { BellIcon, SearchIcon } from "@/components/ui/icons";
+import { BellIcon } from "@/components/ui/icons";
 
 type HomeHeaderProps = {
   coinBalance: number;
   hasUnreadNotification?: boolean;
   onCoinPress: () => void;
   onNotificationPress: () => void;
-  onSearchPress: () => void;
 };
 
 export function HomeHeader({
@@ -17,7 +16,6 @@ export function HomeHeader({
   hasUnreadNotification = false,
   onCoinPress,
   onNotificationPress,
-  onSearchPress,
 }: HomeHeaderProps) {
   const insets = useSafeAreaInsets();
 
@@ -45,15 +43,6 @@ export function HomeHeader({
             style={styles.coinIcon}
           />
           <Text style={styles.coinText}>{coinBalance}</Text>
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Search"
-          onPress={onSearchPress}
-          style={({ pressed }) => [styles.iconButton, pressed ? styles.buttonPressed : null]}
-        >
-          <SearchIcon color="#061b49" size={21} strokeWidth={1.8} />
         </Pressable>
 
         <Pressable
