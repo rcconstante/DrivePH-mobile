@@ -3,7 +3,8 @@ import { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppHeader } from "@/components/layout/app-header";
+import { ChevronRightIcon } from "@/components/ui/icons";
+import { CoinBalancePill } from "@/features/coins/components/coin-balance-pill";
 import {
   getTopicProgress,
   learnCategories,
@@ -25,21 +26,6 @@ export function LearnScreen() {
     [selectedCategory],
   );
 
-  const overallProgress = useMemo(() => {
-    const totals = learnTopics.reduce(
-      (summary, topic) => ({
-        completedTopics: summary.completedTopics + topic.completedTopics,
-        totalTopics: summary.totalTopics + topic.totalTopics,
-      }),
-      { completedTopics: 0, totalTopics: 0 },
-    );
-
-    return {
-      ...totals,
-      percent: getTopicProgress(totals.completedTopics, totals.totalTopics),
-    };
-  }, []);
-
   const handleTopicPress = (topic: LearnTopic) => {
     router.push({
       pathname: "/learn/[topicId]",
@@ -49,7 +35,6 @@ export function LearnScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader showNotificationDot showSearch />
       <ScrollView
         testID="learn-screen"
         style={styles.scroll}
@@ -59,44 +44,31 @@ export function LearnScreen() {
           styles.content,
           {
             paddingBottom: Math.max(insets.bottom, 18) + 126,
+            paddingTop: Math.max(insets.top, 18),
           },
         ]}
       >
-        <View style={styles.hero}>
+        <View style={styles.titleRow}>
+          <Text style={styles.screenTitle}>Learn</Text>
+          <CoinBalancePill />
+        </View>
+
+        <View style={styles.heroCard}>
           <View style={styles.heroCopy}>
-            <Text style={styles.title}>Learn</Text>
-            <Text style={styles.subtitle}>
-              Learn essential topics to become a responsible and confident driver.
+            <Text style={styles.heroTitle}>
+              Understand.{"\n"}
+              Learn.{"\n"}
+              Drive Safely.
             </Text>
+            <Text style={styles.heroText}>Everything you need to know, in one place.</Text>
           </View>
           <Image
-            source={require("../../assets/images/learn-header.png")}
+            source={require("../../assets/cute-assets/learn-header.png")}
             resizeMode="contain"
-            accessibilityLabel="Books with graduation cap and Philippine flag"
+            accessibilityLabel="Driver license card and arrow"
             style={styles.heroImage}
           />
         </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Overall progress ${overallProgress.percent}%`}
-          style={({ pressed }) => [styles.progressCard, pressed ? styles.cardPressed : null]}
-        >
-          <View style={styles.progressCopy}>
-            <Text style={styles.progressLabel}>Overall Progress</Text>
-            <Text style={styles.progressPercent}>{overallProgress.percent}%</Text>
-            <Text style={styles.progressNote}>Keep learning, you're doing great!</Text>
-          </View>
-          <View style={styles.progressDetails}>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${overallProgress.percent}%` }]} />
-            </View>
-            <Text style={styles.progressCount}>
-              {overallProgress.completedTopics} / {overallProgress.totalTopics} topics completed
-            </Text>
-          </View>
-          <Text style={styles.chevronText}>{">"}</Text>
-        </Pressable>
 
         <ScrollView
           horizontal
@@ -135,275 +107,190 @@ export function LearnScreen() {
 
 function LearnTopicCard({ onPress, topic }: { onPress: () => void; topic: LearnTopic }) {
   const percent = getTopicProgress(topic.completedTopics, topic.totalTopics);
-  const progressColor = getProgressColor(percent);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${topic.title}, ${percent}% complete`}
+      accessibilityLabel={`${topic.title}, ${topic.completedTopics} of ${topic.totalTopics}`}
       accessibilityHint="Opens mock topic detail"
       onPress={onPress}
-      style={({ pressed }) => [styles.topicCard, pressed ? styles.topicCardPressed : null]}
+      style={({ pressed }) => [styles.topicCard, pressed ? styles.cardPressed : null]}
     >
-      <View style={[styles.topicIcon, { backgroundColor: topic.iconBackgroundColor }]}>
-        <Text style={styles.topicIconText}>{topic.iconLabel}</Text>
-      </View>
+      <Image
+        source={topic.image}
+        resizeMode="contain"
+        accessibilityLabel={topic.imageLabel}
+        style={styles.topicImage}
+      />
 
       <View style={styles.topicCopy}>
         <Text style={styles.topicTitle}>{topic.title}</Text>
-        <Text style={styles.topicDescription}>{topic.description}</Text>
-      </View>
-
-      <View style={styles.topicProgress}>
-        <View style={styles.topicProgressHeader}>
-          <Text style={styles.topicCount}>
-            {topic.completedTopics} / {topic.totalTopics}
-          </Text>
-          <Text style={[styles.topicPercent, { color: progressColor }]}>{percent}%</Text>
-        </View>
+        <Text numberOfLines={2} style={styles.topicDescription}>
+          {topic.description}
+        </Text>
         <View style={styles.topicTrack}>
-          <View style={[styles.topicFill, { backgroundColor: progressColor, width: `${percent}%` }]} />
+          <View style={[styles.topicFill, { width: `${percent}%` }]} />
         </View>
       </View>
 
-      <Text style={styles.chevronText}>{">"}</Text>
+      <View style={styles.topicMeta}>
+        <Text style={styles.topicCount}>
+          {topic.completedTopics}/{topic.totalTopics}
+        </Text>
+        <ChevronRightIcon color="#8f9aa6" size={20} strokeWidth={2} />
+      </View>
     </Pressable>
   );
 }
 
-function getProgressColor(percent: number) {
-  if (percent >= 60) {
-    return "#0757ff";
-  }
-
-  if (percent >= 50) {
-    return "#16a34a";
-  }
-
-  return "#f97316";
-}
-
 const styles = StyleSheet.create({
+  cardPressed: {
+    opacity: 0.86,
+  },
   categoryButton: {
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#dce7f4",
-    borderRadius: 12,
-    borderWidth: 1,
-    height: 40,
+    backgroundColor: "#f1f3f2",
+    borderRadius: 999,
+    height: 31,
     justifyContent: "center",
     paddingHorizontal: 14,
   },
   categoryButtonActive: {
-    backgroundColor: "#0757ff",
-    borderColor: "#0757ff",
+    backgroundColor: "#4caf50",
   },
   categoryLabel: {
-    color: "#061b49",
-    fontSize: 12,
+    color: "#6d7782",
+    fontSize: 11,
     fontWeight: "800",
     letterSpacing: 0,
-    lineHeight: 16,
+    lineHeight: 14,
   },
   categoryLabelActive: {
     color: "#ffffff",
   },
   categoryList: {
-    gap: 10,
+    gap: 8,
     paddingRight: 18,
-  },
-  chevronText: {
-    color: "#63718b",
-    fontSize: 22,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 24,
   },
   content: {
     gap: 12,
     paddingHorizontal: 18,
   },
-  hero: {
-    minHeight: 132,
+  heroCard: {
+    backgroundColor: "#6abf58",
+    borderRadius: 16,
+    flexDirection: "row",
+    minHeight: 122,
     overflow: "hidden",
-    position: "relative",
+    padding: 14,
   },
   heroCopy: {
-    maxWidth: 190,
-    paddingTop: 12,
+    flex: 1,
+    gap: 7,
+    justifyContent: "center",
     zIndex: 1,
   },
   heroImage: {
-    bottom: -2,
-    height: 118,
+    bottom: -6,
+    height: 116,
     position: "absolute",
-    right: -12,
-    width: 168,
+    right: 0,
+    width: 156,
   },
-  progressCard: {
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
-    borderRadius: 18,
-    borderWidth: 1,
-    boxShadow: "0 8px 18px rgba(6, 27, 73, 0.08)",
-    flexDirection: "row",
-    gap: 10,
-    minHeight: 88,
-    padding: 14,
-  },
-  progressCopy: {
-    width: 90,
-  },
-  progressCount: {
-    color: "#36445f",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 15,
-  },
-  progressDetails: {
-    flex: 1,
-    gap: 7,
-  },
-  progressFill: {
-    backgroundColor: "#0757ff",
-    borderRadius: 999,
-    height: "100%",
-  },
-  progressLabel: {
-    color: "#36445f",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 15,
-  },
-  progressNote: {
-    color: "#7b8aa4",
+  heroText: {
+    color: "#efffed",
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: "700",
     letterSpacing: 0,
     lineHeight: 14,
-    paddingTop: 4,
+    maxWidth: 156,
   },
-  progressPercent: {
-    color: "#0757ff",
-    fontSize: 24,
+  heroTitle: {
+    color: "#ffffff",
+    fontSize: 18,
     fontWeight: "900",
     letterSpacing: 0,
-    lineHeight: 30,
-  },
-  progressTrack: {
-    backgroundColor: "#e8edf4",
-    borderRadius: 999,
-    height: 8,
-    overflow: "hidden",
+    lineHeight: 22,
   },
   screen: {
-    backgroundColor: "#f7fbff",
+    backgroundColor: "#fbfcf8",
     flex: 1,
+  },
+  screenTitle: {
+    color: "#172230",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 22,
   },
   scroll: {
     flex: 1,
   },
-  subtitle: {
-    color: "#36445f",
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0,
-    lineHeight: 17,
-    paddingTop: 8,
-  },
-  title: {
-    color: "#061b49",
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 34,
-  },
-  cardPressed: {
-    opacity: 0.86,
+  titleRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   topicCard: {
     alignItems: "center",
     backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
-    borderRadius: 18,
+    borderColor: "#e6ece8",
+    borderRadius: 14,
     borderWidth: 1,
-    boxShadow: "0 4px 12px rgba(6, 27, 73, 0.06)",
+    boxShadow: "0 4px 12px rgba(23, 34, 48, 0.06)",
     flexDirection: "row",
-    gap: 10,
-    minHeight: 88,
-    padding: 12,
-  },
-  topicCardPressed: {
-    opacity: 0.86,
+    gap: 12,
+    minHeight: 84,
+    padding: 10,
   },
   topicCopy: {
     flex: 1,
     gap: 4,
+    minWidth: 0,
   },
   topicCount: {
-    color: "#36445f",
-    fontSize: 11,
+    color: "#6d7782",
+    fontSize: 10,
     fontWeight: "800",
     letterSpacing: 0,
-    lineHeight: 15,
+    lineHeight: 13,
   },
   topicDescription: {
-    color: "#4d5f78",
-    fontSize: 11,
+    color: "#5d6875",
+    fontSize: 10,
     fontWeight: "600",
     letterSpacing: 0,
-    lineHeight: 15,
+    lineHeight: 14,
   },
   topicFill: {
+    backgroundColor: "#4caf50",
     borderRadius: 999,
     height: "100%",
   },
-  topicIcon: {
-    alignItems: "center",
-    borderRadius: 12,
-    height: 50,
-    justifyContent: "center",
-    width: 50,
-  },
-  topicIconText: {
-    color: "#0757ff",
-    fontSize: 14,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 18,
+  topicImage: {
+    height: 58,
+    width: 66,
   },
   topicList: {
     gap: 10,
   },
-  topicPercent: {
+  topicMeta: {
+    alignItems: "center",
+    gap: 12,
+  },
+  topicTitle: {
+    color: "#172230",
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 16,
   },
-  topicProgress: {
-    gap: 6,
-    width: 68,
-  },
-  topicProgressHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  topicTitle: {
-    color: "#061b49",
-    fontSize: 14,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 18,
-  },
   topicTrack: {
-    backgroundColor: "#e8edf4",
+    backgroundColor: "#e7ece8",
     borderRadius: 999,
-    height: 6,
+    height: 5,
+    marginTop: 2,
     overflow: "hidden",
+    width: 86,
   },
 });

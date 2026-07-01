@@ -60,7 +60,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
           title: "Settings",
           tabBarAccessibilityLabel: "Settings tab",

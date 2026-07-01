@@ -1,16 +1,37 @@
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppHeader } from "@/components/layout/app-header";
 import { SearchIcon } from "@/components/ui/icons";
-import { exploreCards } from "@/features/home/data";
+import { HomeHeader } from "@/features/home/components/home-header";
+import { HomeNotificationsModal } from "@/features/home/components/home-notifications-modal";
+import { HomeSearchModal } from "@/features/home/components/home-search-modal";
+import { exploreCards, homeNotifications, type ExploreCard } from "@/features/home/data";
+import { useHomeSearch } from "@/features/home/hooks/use-home-search";
 
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const homeSearch = useHomeSearch();
+  const [isSearchOpen, setSearchOpen] = useState(false);
+  const [isNotificationsOpen, setNotificationsOpen] = useState(false);
+
+  const handleExplorePress = (card: ExploreCard) => {
+    setSearchOpen(false);
+    router.push(card.route);
+  };
 
   return (
     <View style={styles.screen}>
-      <AppHeader />
+      <HomeHeader
+        coinBalance={230}
+        hasUnreadNotification
+        onCoinPress={() => router.push("/coins")}
+        onNotificationPress={() => setNotificationsOpen(true)}
+        onSearchPress={() => setSearchOpen(true)}
+      />
+
       <ScrollView
         testID="home-screen"
         style={styles.scroll}
@@ -36,23 +57,25 @@ export function HomeScreen() {
           </Text>
         </ImageBackground>
 
-        <View style={styles.searchBar} accessibilityRole="search">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Search topics"
+          onPress={() => setSearchOpen(true)}
+          style={({ pressed }) => [styles.searchBar, pressed ? styles.cardPressed : null]}
+        >
           <SearchIcon color="#9aa8ba" size={18} strokeWidth={1.8} />
-          <Text style={styles.searchText}>Search topics, signs, tips...</Text>
-        </View>
+          <Text numberOfLines={1} style={styles.searchText}>
+            {homeSearch.query.trim().length > 0
+              ? homeSearch.query
+              : "Search topics, signs, tips..."}
+          </Text>
+        </Pressable>
 
-        <View>
-          <Text style={styles.sectionTitle}>Explore</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Explore</Text>
 
         <View style={styles.exploreGrid}>
           {exploreCards.map((card) => (
-            <ExploreCardItem
-              key={card.id}
-              accentColor={card.accentColor}
-              icon={card.icon}
-              title={card.title}
-            />
+            <ExploreCardItem key={card.id} card={card} onPress={() => handleExplorePress(card)} />
           ))}
         </View>
 
@@ -65,6 +88,7 @@ export function HomeScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View beginner tips"
+              onPress={() => router.push("/learn")}
               style={styles.smallButton}
             >
               <Text style={styles.smallButtonText}>View Beginner Tips</Text>
@@ -78,42 +102,118 @@ export function HomeScreen() {
           />
         </View>
       </ScrollView>
+
+      <HomeSearchModal
+        onChangeQuery={homeSearch.setQuery}
+        onClose={() => setSearchOpen(false)}
+        onSelectResult={handleExplorePress}
+        query={homeSearch.query}
+        results={homeSearch.results}
+        visible={isSearchOpen}
+      />
+
+      <HomeNotificationsModal
+        notifications={homeNotifications}
+        onClose={() => setNotificationsOpen(false)}
+        visible={isNotificationsOpen}
+      />
     </View>
   );
 }
 
 type ExploreCardItemProps = {
-  accentColor: string;
-  icon: typeof exploreCards[number]["icon"];
-  title: string;
+  card: ExploreCard;
+  onPress: () => void;
 };
 
-function ExploreCardItem({ accentColor, icon: Icon, title }: ExploreCardItemProps) {
+function ExploreCardItem({ card, onPress }: ExploreCardItemProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={card.title}
+      onPress={onPress}
       style={({ pressed }) => [styles.exploreCard, pressed ? styles.cardPressed : null]}
     >
-      <View style={[styles.exploreIcon, { backgroundColor: accentColor }]}>
-        <Icon color="#ffffff" size={22} strokeWidth={1.9} />
-      </View>
-      <Text numberOfLines={2} style={styles.exploreTitle}>{title}</Text>
+      <Image
+        source={card.image}
+        resizeMode="contain"
+        accessibilityLabel={card.imageLabel}
+        style={styles.exploreImage}
+      />
+      <Text numberOfLines={2} style={styles.exploreTitle}>{card.title}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#f7fbff",
-  },
-  scroll: {
-    flex: 1,
+  cardPressed: {
+    opacity: 0.86,
   },
   content: {
     gap: 12,
     paddingHorizontal: 18,
+  },
+  driverCard: {
+    alignItems: "center",
+    backgroundColor: "#eaf5ff",
+    borderRadius: 20,
+    flexDirection: "row",
+    minHeight: 134,
+    overflow: "hidden",
+    paddingLeft: 18,
+  },
+  driverCopy: {
+    flex: 1,
+    gap: 7,
+    zIndex: 1,
+  },
+  driverDescription: {
+    color: "#63718b",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0,
+    lineHeight: 16,
+  },
+  driverImage: {
+    height: 134,
+    width: 150,
+  },
+  driverTitle: {
+    color: "#061b49",
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 22,
+  },
+  exploreCard: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#e5edf6",
+    borderRadius: 14,
+    borderWidth: 1,
+    flexBasis: "31.3%",
+    flexGrow: 1,
+    gap: 6,
+    minHeight: 104,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
+  },
+  exploreGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  exploreImage: {
+    height: 56,
+    width: 68,
+  },
+  exploreTitle: {
+    color: "#061b49",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 15,
+    textAlign: "center",
   },
   hero: {
     height: 128,
@@ -132,6 +232,13 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(255, 255, 255, 0.85)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 5,
+  },
+  screen: {
+    backgroundColor: "#fbfcf8",
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
   },
   searchBar: {
     alignItems: "center",
@@ -158,74 +265,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     lineHeight: 18,
   },
-  exploreGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  exploreCard: {
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
-    borderRadius: 14,
-    borderWidth: 1,
-    flexBasis: "31.3%",
-    flexGrow: 1,
-    gap: 9,
-    minHeight: 104,
-    paddingHorizontal: 7,
-    paddingVertical: 12,
-  },
-  cardPressed: {
-    opacity: 0.86,
-  },
-  exploreIcon: {
-    alignItems: "center",
-    borderRadius: 15,
-    height: 44,
-    justifyContent: "center",
-    width: 44,
-  },
-  exploreTitle: {
-    color: "#061b49",
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 15,
-    textAlign: "center",
-  },
-  driverCard: {
-    alignItems: "center",
-    backgroundColor: "#eaf5ff",
-    borderRadius: 20,
-    flexDirection: "row",
-    minHeight: 134,
-    overflow: "hidden",
-    paddingLeft: 18,
-  },
-  driverCopy: {
-    flex: 1,
-    gap: 7,
-    zIndex: 1,
-  },
-  driverTitle: {
-    color: "#061b49",
-    fontSize: 17,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 22,
-  },
-  driverDescription: {
-    color: "#63718b",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0,
-    lineHeight: 16,
-  },
   smallButton: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "#0757ff",
+    backgroundColor: "#3da847",
     borderRadius: 999,
     height: 34,
     justifyContent: "center",
@@ -237,9 +280,5 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 14,
-  },
-  driverImage: {
-    height: 134,
-    width: 150,
   },
 });

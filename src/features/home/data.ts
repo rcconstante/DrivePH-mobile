@@ -1,62 +1,80 @@
-import {
-  BookmarkIcon,
-  ClipboardListIcon,
-  ListChecksIcon,
-  RouteIcon,
-  TriangleAlertIcon,
-  WrenchIcon,
-  type IconComponent,
-} from "@/components/ui/icons";
+import type { ImageSourcePropType } from "react-native";
+
+export type ExploreRoute = "/learn" | "/quiz" | "/scenarios" | "/settings/index";
 
 export type ExploreCard = {
   id: string;
-  icon: IconComponent;
+  image: ImageSourcePropType;
+  imageLabel: string;
+  route: ExploreRoute;
   title: string;
+};
+
+export type HomeNotification = {
   description: string;
-  accentColor: string;
+  id: string;
+  title: string;
 };
 
 export const exploreCards: ExploreCard[] = [
   {
     id: "road-signs",
-    icon: RouteIcon,
+    image: require("../../assets/cute-assets/parking-sign.png") as ImageSourcePropType,
+    imageLabel: "Road sign",
+    route: "/learn",
     title: "Road Signs",
-    description: "Learn signs and meanings.",
-    accentColor: "#2f80ed",
   },
   {
     id: "lto-quiz",
-    icon: ClipboardListIcon,
+    image: require("../../assets/cute-assets/lto-quiz.png") as ImageSourcePropType,
+    imageLabel: "LTO quiz clipboard",
+    route: "/quiz",
     title: "LTO Quiz",
-    description: "Practice and pass your exam.",
-    accentColor: "#34c759",
   },
   {
     id: "driving-situations",
-    icon: TriangleAlertIcon,
+    image: require("../../assets/cute-assets/driving-warning.png") as ImageSourcePropType,
+    imageLabel: "Driving warning sign",
+    route: "/scenarios",
     title: "Driving Situations",
-    description: "Understand common road scenarios.",
-    accentColor: "#ffb703",
   },
   {
     id: "car-care",
-    icon: WrenchIcon,
+    image: require("../../assets/cute-assets/meintenance.png") as ImageSourcePropType,
+    imageLabel: "Maintenance tools",
+    route: "/learn",
     title: "Car Care",
-    description: "Basic maintenance checklist.",
-    accentColor: "#7c3aed",
   },
   {
     id: "emergency-guide",
-    icon: ListChecksIcon,
+    image: require("../../assets/cute-assets/emergency.png") as ImageSourcePropType,
+    imageLabel: "Emergency kit",
+    route: "/scenarios",
     title: "Emergency Guide",
-    description: "What to do in case of emergencies.",
-    accentColor: "#ef4444",
   },
   {
     id: "saved",
-    icon: BookmarkIcon,
+    image: require("../../assets/cute-assets/bookmark.png") as ImageSourcePropType,
+    imageLabel: "Bookmark",
+    route: "/settings/index",
     title: "Saved",
-    description: "Your favorite topics and notes.",
-    accentColor: "#14b8a6",
+  },
+];
+
+export const homeNotifications: HomeNotification[] = [
+  {
+    id: "daily",
+    title: "Daily practice is ready",
+    description: "Take a quick road signs review and earn coins.",
+  },
+  {
+    id: "lesson",
+    title: "New beginner tip",
+    description: "Parking basics were added to your recommended lessons.",
+  },
+  {
+    id: "coins",
+    title: "Coins bonus",
+    description: "Complete one quiz today to claim your reward.",
   },
 ];

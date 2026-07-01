@@ -1,9 +1,6 @@
-export type LearnCategoryId =
-  | "all"
-  | "licenses"
-  | "road-knowledge"
-  | "driving-skills"
-  | "vehicle-care";
+import type { ImageSourcePropType } from "react-native";
+
+export type LearnCategoryId = "all" | "student-permit" | "license-types" | "rules";
 
 export type LearnTopicCategoryId = Exclude<LearnCategoryId, "all">;
 
@@ -17,8 +14,8 @@ export type LearnTopic = {
   categoryId: LearnTopicCategoryId;
   completedTopics: number;
   description: string;
-  iconBackgroundColor: string;
-  iconLabel: string;
+  image: ImageSourcePropType;
+  imageLabel: string;
   title: string;
   totalTopics: number;
 };
@@ -30,93 +27,52 @@ export type LearnLesson = {
 };
 
 export const learnCategories: LearnCategory[] = [
-  { id: "all", label: "All Topics" },
-  { id: "licenses", label: "Licenses" },
-  { id: "road-knowledge", label: "Road Knowledge" },
-  { id: "driving-skills", label: "Driving Skills" },
-  { id: "vehicle-care", label: "Vehicle Care" },
+  { id: "all", label: "All" },
+  { id: "student-permit", label: "Student Permit" },
+  { id: "license-types", label: "License Types" },
+  { id: "rules", label: "Rules" },
 ];
 
 export const learnTopics: LearnTopic[] = [
   {
-    id: "license-guide",
-    categoryId: "licenses",
-    completedTopics: 6,
-    description: "Test this is mock test for permit and renewal lessons.",
-    iconBackgroundColor: "#e7f1ff",
-    iconLabel: "LG",
-    title: "License Guide",
-    totalTopics: 8,
-  },
-  {
-    id: "road-signs",
-    categoryId: "road-knowledge",
-    completedTopics: 12,
-    description: "Test this is mock test for signs and symbols.",
-    iconBackgroundColor: "#fff4d7",
-    iconLabel: "RS",
-    title: "Road Signs",
-    totalTopics: 15,
-  },
-  {
-    id: "road-markings",
-    categoryId: "road-knowledge",
-    completedTopics: 5,
-    description: "Test this is mock test for lines and pavement marks.",
-    iconBackgroundColor: "#ddf7e8",
-    iconLabel: "RM",
-    title: "Road Markings",
-    totalTopics: 10,
-  },
-  {
-    id: "traffic-rules",
-    categoryId: "road-knowledge",
-    completedTopics: 8,
-    description: "Test this is mock test for road rules and regulations.",
-    iconBackgroundColor: "#ebe6ff",
-    iconLabel: "TR",
-    title: "Traffic Rules",
-    totalTopics: 16,
-  },
-  {
-    id: "penalties",
-    categoryId: "driving-skills",
+    id: "student-permit",
+    categoryId: "student-permit",
     completedTopics: 4,
-    description: "Test this is mock test for violations and penalties.",
-    iconBackgroundColor: "#ffe8db",
-    iconLabel: "PV",
-    title: "Penalties & Violations",
-    totalTopics: 12,
-  },
-  {
-    id: "vehicle-care",
-    categoryId: "vehicle-care",
-    completedTopics: 3,
-    description: "Test this is mock test for maintenance basics.",
-    iconBackgroundColor: "#ffe2f3",
-    iconLabel: "VC",
-    title: "Vehicle Care",
-    totalTopics: 8,
-  },
-  {
-    id: "emergency-guide",
-    categoryId: "driving-skills",
-    completedTopics: 2,
-    description: "Test this is mock test for emergencies and accidents.",
-    iconBackgroundColor: "#ffe4e6",
-    iconLabel: "EG",
-    title: "Emergency Guide",
+    description: "Requirements, process and restrictions",
+    image: require("../../assets/cute-assets/student-permit.png") as ImageSourcePropType,
+    imageLabel: "Student permit card",
+    title: "Student Permit",
     totalTopics: 6,
   },
   {
-    id: "driving-tips",
-    categoryId: "driving-skills",
-    completedTopics: 6,
-    description: "Test this is mock test for better daily driving habits.",
-    iconBackgroundColor: "#e5f1ff",
-    iconLabel: "DT",
-    title: "Driving Tips",
+    id: "drivers-license-types",
+    categoryId: "license-types",
+    completedTopics: 3,
+    description: "Know the different license categories in the PH",
+    image: require("../../assets/cute-assets/car-non.png") as ImageSourcePropType,
+    imageLabel: "Driver license card and car",
+    title: "Driver's License Types",
+    totalTopics: 6,
+  },
+  {
+    id: "road-signs-guide",
+    categoryId: "rules",
+    completedTopics: 5,
+    description: "Meanings of common road signs",
+    image: require("../../assets/cute-assets/parking-sign.png") as ImageSourcePropType,
+    imageLabel: "Road sign",
+    title: "Road Signs Guide",
     totalTopics: 10,
+  },
+  {
+    id: "traffic-rules-law",
+    categoryId: "rules",
+    completedTopics: 6,
+    description: "Important rules every driver must know",
+    image: require("../../assets/cute-assets/driving-warning.png") as ImageSourcePropType,
+    imageLabel: "Traffic warning",
+    title: "Traffic Rules & Law",
+    totalTopics: 12,
   },
 ];
 
@@ -130,16 +86,16 @@ export const getMockLessonsForTopic = (topic: LearnTopic): LearnLesson[] => [
   {
     id: `${topic.id}-overview`,
     title: `${topic.title} Overview`,
-    body: "Test this is mock test content. This section will later hold the real lesson overview.",
+    body: "Test this is mock test content. Real lessons will be added here later.",
   },
   {
     id: `${topic.id}-practice`,
     title: "Practice Notes",
-    body: "Test this is mock test content. Add short reminders, examples, and checkpoints here.",
+    body: "Test this is mock test content. Add short reminders and examples here.",
   },
   {
     id: `${topic.id}-review`,
     title: "Quick Review",
-    body: "Test this is mock test content. Use this area for a summary before the quiz flow.",
+    body: "Test this is mock test content. Use this as a summary before quiz practice.",
   },
 ];

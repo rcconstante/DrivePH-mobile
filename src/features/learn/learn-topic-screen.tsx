@@ -1,8 +1,7 @@
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppHeader } from "@/components/layout/app-header";
 import { ArrowLeftIcon, CheckIcon } from "@/components/ui/icons";
 import {
   getLearnTopicById,
@@ -23,8 +22,7 @@ export function LearnTopicScreen({ topicId }: LearnTopicScreenProps) {
   if (topic == null) {
     return (
       <View style={styles.screen}>
-        <AppHeader showSearch />
-        <View style={styles.notFound}>
+        <View style={[styles.notFound, { paddingTop: Math.max(insets.top, 18) }]}>
           <Text style={styles.title}>Topic not found</Text>
           <Text style={styles.subtitle}>This mock learning topic does not exist.</Text>
           <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.primaryButton}>
@@ -40,7 +38,6 @@ export function LearnTopicScreen({ topicId }: LearnTopicScreenProps) {
 
   return (
     <View style={styles.screen}>
-      <AppHeader showSearch />
       <ScrollView
         testID="learn-topic-screen"
         style={styles.scroll}
@@ -50,18 +47,22 @@ export function LearnTopicScreen({ topicId }: LearnTopicScreenProps) {
           styles.content,
           {
             paddingBottom: Math.max(insets.bottom, 18) + 126,
+            paddingTop: Math.max(insets.top, 18),
           },
         ]}
       >
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeftIcon color="#0757ff" size={18} strokeWidth={1.9} />
+          <ArrowLeftIcon color="#4caf50" size={18} strokeWidth={1.9} />
           <Text style={styles.backButtonText}>Back</Text>
         </Pressable>
 
         <View style={styles.topicHeader}>
-          <View style={[styles.topicIcon, { backgroundColor: topic.iconBackgroundColor }]}>
-            <Text style={styles.topicIconText}>{topic.iconLabel}</Text>
-          </View>
+          <Image
+            source={topic.image}
+            resizeMode="contain"
+            accessibilityLabel={topic.imageLabel}
+            style={styles.topicImage}
+          />
           <View style={styles.topicHeaderCopy}>
             <Text style={styles.title}>{topic.title}</Text>
             <Text style={styles.subtitle}>{topic.description}</Text>
@@ -95,7 +96,7 @@ function LessonCard({ lesson }: { lesson: LearnLesson }) {
   return (
     <View style={styles.lessonCard}>
       <View style={styles.lessonCheck}>
-        <CheckIcon color="#0757ff" size={16} strokeWidth={2} />
+        <CheckIcon color="#4caf50" size={16} strokeWidth={2} />
       </View>
       <View style={styles.lessonCopy}>
         <Text style={styles.lessonTitle}>{lesson.title}</Text>
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     minHeight: 36,
   },
   backButtonText: {
-    color: "#0757ff",
+    color: "#4caf50",
     fontSize: 13,
     fontWeight: "900",
     letterSpacing: 0,
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
   lessonCard: {
     alignItems: "flex-start",
     backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
+    borderColor: "#e6ece8",
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: "row",
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
   },
   lessonCheck: {
     alignItems: "center",
-    backgroundColor: "#eaf2ff",
+    backgroundColor: "#eef9ef",
     borderRadius: 12,
     height: 32,
     justifyContent: "center",
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "#0757ff",
+    backgroundColor: "#4caf50",
     borderRadius: 999,
     height: 42,
     justifyContent: "center",
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
+    borderColor: "#e6ece8",
     borderRadius: 16,
     borderWidth: 1,
     gap: 10,
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   progressFill: {
-    backgroundColor: "#0757ff",
+    backgroundColor: "#4caf50",
     borderRadius: 999,
     height: "100%",
   },
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   progressPercent: {
-    color: "#0757ff",
+    color: "#4caf50",
     fontSize: 18,
     fontWeight: "900",
     letterSpacing: 0,
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   screen: {
-    backgroundColor: "#f7fbff",
+    backgroundColor: "#fbfcf8",
     flex: 1,
   },
   scroll: {
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   title: {
-    color: "#061b49",
+    color: "#172230",
     fontSize: 20,
     fontWeight: "900",
     letterSpacing: 0,
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   topicHeader: {
     alignItems: "center",
     backgroundColor: "#ffffff",
-    borderColor: "#e5edf6",
+    borderColor: "#e6ece8",
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: "row",
@@ -263,18 +264,8 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 5,
   },
-  topicIcon: {
-    alignItems: "center",
-    borderRadius: 14,
+  topicImage: {
     height: 58,
-    justifyContent: "center",
-    width: 58,
-  },
-  topicIconText: {
-    color: "#0757ff",
-    fontSize: 16,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 20,
+    width: 66,
   },
 });

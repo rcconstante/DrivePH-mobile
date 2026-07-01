@@ -16,6 +16,10 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="setup" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="coins" />
+          <Stack.Screen name="coin-history" />
+          <Stack.Screen name="buy-coins" />
+          <Stack.Screen name="about" />
         </Stack>
         <StatusBar style="auto" />
       </UserPreferencesProvider>
