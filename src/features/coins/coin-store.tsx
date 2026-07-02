@@ -1,10 +1,12 @@
-import { createContext, use, useMemo, useState, type PropsWithChildren } from "react";
+import { createContext, use, useCallback, useMemo, type PropsWithChildren } from "react";
 
 import {
   getCoinPackageById,
   type CoinPackage,
   type CoinPackageId,
 } from "@/features/coins/data";
+import { usePersistentState } from "@/hooks/use-persistent-state";
+import { storageKeys } from "@/services/storage-keys";
 
 export type CoinTransactionType = "earn" | "purchase" | "spend";
 
@@ -45,14 +47,17 @@ const initialTransactions: CoinTransaction[] = [
 const CoinStoreContext = createContext<CoinStoreValue | null>(null);
 
 export function CoinProvider({ children }: PropsWithChildren) {
-  const [transactions, setTransactions] = useState<CoinTransaction[]>(initialTransactions);
+  const [transactions, setTransactions] = usePersistentState<CoinTransaction[]>(
+    storageKeys.coinTransactions,
+    initialTransactions,
+  );
 
   const balance = useMemo(
     () => transactions.reduce((total, transaction) => total + transaction.amount, 0),
     [transactions],
   );
 
-  const earnCoins = (input: EarnCoinsInput) => {
+  const earnCoins = useCallback((input: EarnCoinsInput) => {
     const transactionId = `earn-${input.sourceId}`;
 
     if (transactions.some((transaction) => transaction.id === transactionId)) {
@@ -72,9 +77,9 @@ export function CoinProvider({ children }: PropsWithChildren) {
     ]);
 
     return true;
-  };
+  }, [setTransactions, transactions]);
 
-  const purchasePackage = (packageId: CoinPackageId) => {
+  const purchasePackage = useCallback((packageId: CoinPackageId) => {
     const coinPackage = getCoinPackageById(packageId);
 
     if (coinPackage == null) {
@@ -85,7 +90,7 @@ export function CoinProvider({ children }: PropsWithChildren) {
       {
         id: `purchase-${coinPackage.id}-${Date.now()}`,
         title: `${coinPackage.title} Purchased`,
-        description: `Demo purchase completed for ${coinPackage.price}`,
+        description: `Purchase completed for ${coinPackage.price}`,
         amount: coinPackage.amount,
         createdAt: "Today",
         type: "purchase",
@@ -94,7 +99,7 @@ export function CoinProvider({ children }: PropsWithChildren) {
     ]);
 
     return coinPackage;
-  };
+  }, [setTransactions]);
 
   const value = useMemo<CoinStoreValue>(
     () => ({
@@ -103,7 +108,7 @@ export function CoinProvider({ children }: PropsWithChildren) {
       purchasePackage,
       transactions,
     }),
-    [balance, transactions],
+    [balance, earnCoins, purchasePackage, transactions],
   );
 
   return (

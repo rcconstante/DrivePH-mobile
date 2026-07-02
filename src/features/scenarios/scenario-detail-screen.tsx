@@ -93,12 +93,6 @@ export function ScenarioDetailScreen({ scenarioId }: ScenarioDetailScreenProps) 
               </View>
             </View>
           </View>
-          <Image
-            source={scenario.image}
-            resizeMode="contain"
-            accessibilityLabel={scenario.imageLabel}
-            style={styles.heroImage}
-          />
         </View>
 
         <View style={styles.learnCard}>
@@ -205,9 +199,7 @@ const styles = StyleSheet.create({
     borderColor: "#cfeecf",
     borderRadius: 18,
     borderWidth: 1,
-    flexDirection: "row",
-    gap: 8,
-    minHeight: 190,
+    minHeight: 160,
     overflow: "hidden",
     padding: 14,
   },
@@ -216,10 +208,6 @@ const styles = StyleSheet.create({
     gap: 10,
     minWidth: 0,
     zIndex: 1,
-  },
-  heroImage: {
-    height: 150,
-    width: 150,
   },
   insideCard: {
     backgroundColor: "#ffffff",

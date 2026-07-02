@@ -49,6 +49,7 @@ export function QuizCategoryScreen({ quizId }: QuizCategoryScreenProps) {
     router.push({
       pathname: "/quiz/[quizId]/[setId]",
       params: {
+        origin: "quiz",
         quizId: quizSet.categoryId,
         setId: quizSet.id,
       },

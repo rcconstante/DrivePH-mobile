@@ -1,6 +1,7 @@
 import type { ImageSourcePropType } from "react-native";
 
 import { ltoReviewerQuestions } from "@/features/quiz/lto-reviewer-questions";
+import { cdeRoadTrafficQuizQuestions } from "@/features/traffic-rules/cde-road-traffic-rules";
 
 export type QuizCategoryId =
   | "lto-reviewer"
@@ -33,11 +34,14 @@ export type QuizQuestion = {
 export type QuizSet = {
   categoryId: QuizCategoryId;
   description: string;
+  durationMinutes?: number;
   estimatedMinutes: string;
   id: string;
   image: ImageSourcePropType;
   imageLabel: string;
+  questionLimit?: number;
   questions: QuizQuestion[];
+  randomizeByDefault?: boolean;
   title: string;
 };
 
@@ -46,6 +50,8 @@ const trafficRulesImage = require("../../assets/cute-assets/driving-warning.png"
 const safeDrivingImage = require("../../assets/cute-assets/shield.png") as ImageSourcePropType;
 const licenseImage = require("../../assets/cute-assets/student-permit.png") as ImageSourcePropType;
 const reviewerImage = require("../../assets/cute-assets/lto-quiz.png") as ImageSourcePropType;
+
+export const roadRulesFinalExamSetId = "cde-road-traffic-rules" as const;
 
 export const quizCategories: QuizCategory[] = [
   {
@@ -67,7 +73,7 @@ export const quizCategories: QuizCategory[] = [
     image: trafficRulesImage,
     imageLabel: "Traffic light and warning",
     title: "Traffic Rules",
-    description: "Right of way, lanes, overtaking, and parking rules.",
+    description: "CDE rules, right of way, lanes, overtaking, and parking.",
   },
   {
     id: "safe-driving",
@@ -143,6 +149,19 @@ export const quizSets: QuizSet[] = [
     image: roadSignImage,
     imageLabel: "Road marking quiz",
     questions: pickReviewerQuestions([16, 23, 37, 38, 39, 41, 50, 66, 71, 74]),
+  },
+  {
+    id: roadRulesFinalExamSetId,
+    categoryId: "traffic-rules",
+    title: "ROAD AND TRAFFIC RULES",
+    description: "Turning, overtaking, lane changes, right of way, parking, and crash duties.",
+    durationMinutes: 20,
+    estimatedMinutes: "8-10 min",
+    image: reviewerImage,
+    imageLabel: "Road rules final exam clipboard",
+    questionLimit: 20,
+    questions: cdeRoadTrafficQuizQuestions,
+    randomizeByDefault: true,
   },
   {
     id: "right-of-way",

@@ -13,13 +13,18 @@ import {
 import { useCoins } from "@/features/coins/coin-store";
 import {
   getLearnDetailByTopicId,
+  getLearnSubmoduleProgressId,
+  getLearnSubmoduleUnitIds,
   getLearnTopicById,
   learnStages,
   type LearnCheckpointChoice,
   type LearnContentSection,
   type LearnStepId,
+  type LearnTopic,
 } from "@/features/learn/data";
 import { useLearnProgress } from "@/features/learn/learn-progress-store";
+import { getQuizSetBySetId, roadRulesFinalExamSetId } from "@/features/quiz/data";
+import { useQuizProgress } from "@/features/quiz/quiz-progress-store";
 import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 type LearnTopicScreenProps = {
@@ -56,7 +61,7 @@ export function LearnTopicScreen({ topicId }: LearnTopicScreenProps) {
   if (topic == null || detail == null) {
     return (
       <View style={styles.screen}>
-        <FloatingDetailHeader showCoins={false} />
+        <FloatingDetailHeader fallbackHref="/learn" showCoins={false} />
         <View style={[styles.notFound, { paddingTop: Math.max(insets.top, 18) + 70 }]}>
           <Text style={styles.title}>Topic not found</Text>
           <Text style={styles.subtitle}>This learning topic is not available.</Text>
@@ -74,6 +79,10 @@ export function LearnTopicScreen({ topicId }: LearnTopicScreenProps) {
   const progressPercent = getTopicProgressPercent(topic.id, learnStages.length);
   const isCorrect = checked && selectedChoice?.correct === true;
   const isWrong = checked && selectedChoice != null && !selectedChoice.correct;
+
+  if (detail.showSubmoduleList === true) {
+    return <LearnModuleListScreen detail={detail} topic={topic} />;
+  }
 
   const scrollToTop = () => {
     requestAnimationFrame(() => {
@@ -137,7 +146,7 @@ export function LearnTopicScreen({ topicId }: LearnTopicScreenProps) {
 
   return (
     <View style={styles.screen}>
-      <FloatingDetailHeader />
+      <FloatingDetailHeader fallbackHref="/learn" />
       <ScrollView
         ref={scrollRef}
         testID="learn-topic-screen"
@@ -168,7 +177,11 @@ export function LearnTopicScreen({ topicId }: LearnTopicScreenProps) {
         </View>
 
         {activeStep.id === "overview" ? (
-          <LessonOverview topicImage={topic.image} topicImageLabel={topic.imageLabel} detail={detail} />
+          <LessonOverview
+            detail={detail}
+            topicImage={topic.image}
+            topicImageLabel={topic.imageLabel}
+          />
         ) : activeStep.id === "content" ? (
           <LessonContent sections={detail.sections} />
         ) : (
@@ -212,6 +225,179 @@ export function LearnTopicScreen({ topicId }: LearnTopicScreenProps) {
             {!completed ? <ArrowRightIcon color="#ffffff" size={18} strokeWidth={2.2} /> : null}
           </Pressable>
         </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function LearnModuleListScreen({
+  detail,
+  topic,
+}: {
+  detail: NonNullable<ReturnType<typeof getLearnDetailByTopicId>>;
+  topic: LearnTopic;
+}) {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
+  const { getCompletedUnitCount, getItemProgressPercent, isItemCompleted } = useLearnProgress();
+  const { getQuizProgress } = useQuizProgress();
+  useScrollToTopOnFocus(scrollRef);
+  const finalExamSet = getQuizSetBySetId(roadRulesFinalExamSetId);
+  const finalExamTotal = finalExamSet?.questionLimit ?? finalExamSet?.questions.length ?? 0;
+  const finalExamProgress = getQuizProgress(roadRulesFinalExamSetId, finalExamTotal);
+  const finalExamPassed = finalExamTotal > 0
+    ? Math.round((finalExamProgress.bestScore / finalExamTotal) * 100) >= 75
+    : false;
+
+  const completedModules = detail.sections.filter((section) =>
+    isItemCompleted(getLearnSubmoduleProgressId(topic.id, section.id)),
+  ).length;
+  const progressPercent = detail.sections.length === 0
+    ? 0
+    : Math.round((completedModules / detail.sections.length) * 100);
+
+  const openSubmodule = (moduleId: string) => {
+    router.push({
+      pathname: "/learn/[topicId]/[moduleId]",
+      params: {
+        moduleId,
+        topicId: topic.id,
+      },
+    });
+  };
+
+  return (
+    <View style={styles.screen}>
+      <FloatingDetailHeader fallbackHref="/learn" />
+      <ScrollView
+        ref={scrollRef}
+        testID="learn-module-list-screen"
+        style={styles.scroll}
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: Math.max(insets.bottom, 18) + 132,
+            paddingTop: Math.max(insets.top, 18) + 66,
+          },
+        ]}
+      >
+        <View style={styles.heroCard}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.tag}>{detail.overview.tag}</Text>
+            <Text style={styles.title}>{detail.overview.title}</Text>
+            <Text style={styles.subtitle}>{detail.overview.subtitle}</Text>
+          </View>
+          <Image
+            source={topic.image}
+            resizeMode="contain"
+            accessibilityLabel={topic.imageLabel}
+            style={styles.heroImage}
+          />
+        </View>
+
+        <View style={styles.progressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>Module Progress</Text>
+            <Text style={styles.progressPercent}>{progressPercent}%</Text>
+          </View>
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+            </View>
+            <Text style={styles.progressCount}>
+              {completedModules}/{detail.sections.length}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.moduleListHeader}>
+          <Text style={styles.sectionTitle}>Submodules</Text>
+          <Text style={styles.moduleListMeta}>{detail.sections.length} modules</Text>
+        </View>
+
+        <View style={styles.moduleList}>
+          {detail.sections.map((section, index) => {
+            const progressId = getLearnSubmoduleProgressId(topic.id, section.id);
+            const totalCards = getLearnSubmoduleUnitIds(section).length;
+            const completedCards = getCompletedUnitCount(progressId);
+            const submoduleProgressPercent = getItemProgressPercent(progressId, totalCards);
+            const completed = isItemCompleted(progressId);
+
+            return (
+              <Pressable
+                key={section.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${section.title}, ${completedCards} of ${totalCards} pages completed`}
+                onPress={() => openSubmodule(section.id)}
+                style={({ pressed }) => [styles.moduleCard, pressed ? styles.pressed : null]}
+              >
+                <Image
+                  source={section.image ?? topic.image}
+                  resizeMode="contain"
+                  accessibilityLabel={section.imageLabel ?? section.title}
+                  style={styles.moduleCardImage}
+                />
+                <View style={styles.moduleCardCopy}>
+                  <Text style={styles.moduleNumber}>Module {index + 1}</Text>
+                  <Text style={styles.moduleCardTitle}>{section.title}</Text>
+                  <Text numberOfLines={2} style={styles.moduleCardSubtitle}>
+                    {section.subtitle}
+                  </Text>
+                  <View style={styles.moduleProgressRow}>
+                    <View style={styles.moduleTrack}>
+                      <View style={[styles.moduleFill, { width: `${submoduleProgressPercent}%` }]} />
+                    </View>
+                    <Text style={styles.moduleCount}>
+                      {completed ? "Done" : `${completedCards}/${totalCards}`}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {finalExamSet != null ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Start final road rules exam"
+            onPress={() =>
+              router.push({
+                pathname: "/quiz/[quizId]/[setId]",
+                params: {
+                  origin: "learn",
+                  quizId: "traffic-rules",
+                  returnTopicId: topic.id,
+                  setId: roadRulesFinalExamSetId,
+                },
+              })
+            }
+            style={({ pressed }) => [styles.moduleCard, pressed ? styles.pressed : null]}
+          >
+            <Image
+              source={finalExamSet.image}
+              resizeMode="contain"
+              accessibilityLabel={finalExamSet.imageLabel}
+              style={styles.moduleCardImage}
+            />
+            <View style={styles.moduleCardCopy}>
+              <Text style={styles.moduleNumber}>Final Exam</Text>
+              <Text style={styles.moduleCardTitle}>Rules on the Road Exam</Text>
+              <Text numberOfLines={2} style={styles.moduleCardSubtitle}>
+                20 random questions from all road-rule submodules.
+              </Text>
+              <View style={styles.moduleProgressRow}>
+                <View style={styles.moduleTrack}>
+                  <View style={[styles.moduleFill, { width: finalExamPassed ? "100%" : "0%" }]} />
+                </View>
+                <Text style={styles.moduleCount}>{finalExamPassed ? "Passed" : "0/1"}</Text>
+              </View>
+            </View>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -296,6 +482,25 @@ function LessonContent({ sections }: { sections: LearnContentSection[] }) {
               />
             ) : null}
           </View>
+
+          {section.images != null && section.images.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sectionImageStrip}
+            >
+              {section.images.map((sectionImage) => (
+                <View key={sectionImage.id} style={styles.sectionImageCard}>
+                  <Image
+                    source={sectionImage.image}
+                    resizeMode="contain"
+                    accessibilityLabel={sectionImage.imageLabel}
+                    style={styles.sectionGalleryImage}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
 
           <View style={styles.cardList}>
             {section.cards.map((card, index) => (
@@ -651,6 +856,93 @@ const styles = StyleSheet.create({
   lessonBlock: {
     gap: 12,
   },
+  moduleCard: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#e6ece8",
+    borderRadius: 16,
+    borderWidth: 1,
+    boxShadow: "0 5px 14px rgba(23, 34, 48, 0.06)",
+    flexDirection: "row",
+    gap: 11,
+    minHeight: 102,
+    padding: 11,
+  },
+  moduleCardCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
+  },
+  moduleCardImage: {
+    backgroundColor: "#f7faf7",
+    borderRadius: 13,
+    height: 68,
+    width: 76,
+  },
+  moduleCardSubtitle: {
+    color: "#5d6875",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0,
+    lineHeight: 14,
+  },
+  moduleCardTitle: {
+    color: "#061b49",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 16,
+  },
+  moduleCount: {
+    color: "#2f973b",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 13,
+    minWidth: 38,
+    textAlign: "right",
+  },
+  moduleFill: {
+    backgroundColor: "#2f973b",
+    borderRadius: 999,
+    height: "100%",
+  },
+  moduleList: {
+    gap: 10,
+  },
+  moduleListHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  moduleListMeta: {
+    color: "#6d7782",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0,
+    lineHeight: 15,
+  },
+  moduleNumber: {
+    color: "#2f973b",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 13,
+    textTransform: "uppercase",
+  },
+  moduleProgressRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 7,
+    marginTop: 2,
+  },
+  moduleTrack: {
+    backgroundColor: "#e5ebe7",
+    borderRadius: 999,
+    flex: 1,
+    height: 5,
+    overflow: "hidden",
+  },
   notFound: {
     gap: 12,
     padding: 18,
@@ -831,9 +1123,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
   },
+  sectionGalleryImage: {
+    height: "100%",
+    width: "100%",
+  },
   sectionImage: {
     height: 68,
     width: 76,
+  },
+  sectionImageCard: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#e6ece8",
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 92,
+    justifyContent: "center",
+    overflow: "hidden",
+    padding: 5,
+    width: 132,
+  },
+  sectionImageStrip: {
+    gap: 8,
+    paddingRight: 18,
   },
   sectionSubtitle: {
     color: "#4d5f78",

@@ -1,6 +1,8 @@
-import { createContext, use, useMemo, useState, type PropsWithChildren } from "react";
+import { createContext, use, useMemo, type PropsWithChildren } from "react";
 
 import { defaultPreferences, type UserPreferences } from "@/features/setup/preferences";
+import { usePersistentState } from "@/hooks/use-persistent-state";
+import { storageKeys } from "@/services/storage-keys";
 
 type UserPreferencesContextValue = {
   preferences: UserPreferences;
@@ -10,7 +12,10 @@ type UserPreferencesContextValue = {
 const UserPreferencesContext = createContext<UserPreferencesContextValue | null>(null);
 
 export function UserPreferencesProvider({ children }: PropsWithChildren) {
-  const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
+  const [preferences, setPreferences] = usePersistentState<UserPreferences>(
+    storageKeys.userPreferences,
+    defaultPreferences,
+  );
 
   const value = useMemo<UserPreferencesContextValue>(
     () => ({

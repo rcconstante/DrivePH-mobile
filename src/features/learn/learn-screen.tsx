@@ -3,9 +3,12 @@ import { useMemo, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CategoryFilter } from "@/components/common/category-filter";
 import { ChevronRightIcon } from "@/components/ui/icons";
 import { CoinBalancePill } from "@/features/coins/components/coin-balance-pill";
 import {
+  getLearnDetailByTopicId,
+  getLearnSubmoduleProgressId,
   getTopicStageCount,
   learnCategories,
   learnTopics,
@@ -19,7 +22,11 @@ export function LearnScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const scrollRef = useRef<ScrollView | null>(null);
-  const { getCompletedStageCount, getTopicProgressPercent } = useLearnProgress();
+  const {
+    getCompletedStageCount,
+    getTopicProgressPercent,
+    isItemCompleted,
+  } = useLearnProgress();
   const [selectedCategory, setSelectedCategory] = useState<LearnCategoryId>("all");
   useScrollToTopOnFocus(scrollRef);
 
@@ -40,20 +47,7 @@ export function LearnScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView
-        ref={scrollRef}
-        testID="learn-screen"
-        style={styles.scroll}
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingBottom: Math.max(insets.bottom, 18) + 126,
-            paddingTop: Math.max(insets.top, 18),
-          },
-        ]}
-      >
+      <View style={[styles.fixedHeader, { paddingTop: Math.max(insets.top, 18) }]}>
         <View style={styles.titleRow}>
           <Text style={styles.screenTitle}>Learn</Text>
           <CoinBalancePill />
@@ -76,41 +70,48 @@ export function LearnScreen() {
           />
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-        >
-          {learnCategories.map((category) => {
-            const selected = selectedCategory === category.id;
+        <CategoryFilter
+          items={learnCategories}
+          onSelect={setSelectedCategory}
+          selectedId={selectedCategory}
+        />
+      </View>
 
-            return (
-              <Pressable
-                key={category.id}
-                accessibilityRole="button"
-                accessibilityLabel={category.label}
-                accessibilityState={{ selected }}
-                onPress={() => setSelectedCategory(category.id)}
-                style={[styles.categoryButton, selected ? styles.categoryButtonActive : null]}
-              >
-                <Text style={[styles.categoryLabel, selected ? styles.categoryLabelActive : null]}>
-                  {category.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
+      <ScrollView
+        ref={scrollRef}
+        testID="learn-screen"
+        style={styles.scroll}
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            paddingBottom: Math.max(insets.bottom, 18) + 126,
+            paddingTop: 12,
+          },
+        ]}
+      >
         <View style={styles.topicList}>
           {visibleTopics.map((topic) => {
-            const totalStages = getTopicStageCount();
-            const completedStages = getCompletedStageCount(topic.id);
-            const progressPercent = getTopicProgressPercent(topic.id, totalStages);
+            const detail = getLearnDetailByTopicId(topic.id);
+            const isModuleTopic = detail?.showSubmoduleList === true;
+            const totalStages = isModuleTopic ? detail.sections.length : getTopicStageCount();
+            const completedStages = isModuleTopic
+              ? detail.sections.filter((section) =>
+                isItemCompleted(getLearnSubmoduleProgressId(topic.id, section.id)),
+              ).length
+              : getCompletedStageCount(topic.id);
+            const progressPercent = isModuleTopic
+              ? totalStages === 0
+                ? 0
+                : Math.round((completedStages / totalStages) * 100)
+              : getTopicProgressPercent(topic.id, totalStages);
 
             return (
               <LearnTopicCard
                 key={topic.id}
                 completedStages={completedStages}
+                progressLabel={isModuleTopic ? "submodules" : "steps"}
                 onPress={() => handleTopicPress(topic)}
                 progressPercent={progressPercent}
                 topic={topic}
@@ -127,12 +128,14 @@ export function LearnScreen() {
 function LearnTopicCard({
   completedStages,
   onPress,
+  progressLabel,
   progressPercent,
   topic,
   totalStages,
 }: {
   completedStages: number;
   onPress: () => void;
+  progressLabel: string;
   progressPercent: number;
   topic: LearnTopic;
   totalStages: number;
@@ -162,7 +165,7 @@ function LearnTopicCard({
             <View style={[styles.topicFill, { width: `${progressPercent}%` }]} />
           </View>
           <Text style={styles.topicCount}>
-          {completedStages}/{totalStages}
+            {completedStages}/{totalStages} {progressLabel}
           </Text>
         </View>
       </View>
@@ -178,34 +181,12 @@ const styles = StyleSheet.create({
   cardPressed: {
     opacity: 0.86,
   },
-  categoryButton: {
-    alignItems: "center",
-    backgroundColor: "#f1f3f2",
-    borderRadius: 999,
-    height: 31,
-    justifyContent: "center",
-    paddingHorizontal: 14,
-  },
-  categoryButtonActive: {
-    backgroundColor: "#4caf50",
-  },
-  categoryLabel: {
-    color: "#6d7782",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0,
-    lineHeight: 14,
-  },
-  categoryLabelActive: {
-    color: "#ffffff",
-  },
-  categoryList: {
-    gap: 8,
-    paddingRight: 18,
-  },
-  content: {
+  fixedHeader: {
+    backgroundColor: "#fbfcf8",
     gap: 12,
     paddingHorizontal: 18,
+    paddingBottom: 10,
+    zIndex: 2,
   },
   heroCard: {
     backgroundColor: "#6abf58",
@@ -256,6 +237,9 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: 18,
   },
   titleRow: {
     alignItems: "center",

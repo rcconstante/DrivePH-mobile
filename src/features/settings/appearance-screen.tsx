@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { SettingsPage, SettingsSection } from "@/components/settings/settings-page";
@@ -14,10 +13,14 @@ import {
   type AppearanceOption,
   type AppearanceOptionId,
 } from "@/features/settings/settings-options";
+import { usePersistentState } from "@/hooks/use-persistent-state";
+import { storageKeys } from "@/services/storage-keys";
+
+const defaultAppearance: AppearanceOptionId = "light";
 
 export function AppearanceScreen() {
   const [selectedAppearance, setSelectedAppearance] =
-    useState<AppearanceOptionId>("light");
+    usePersistentState<AppearanceOptionId>(storageKeys.settingsAppearance, defaultAppearance);
 
   return (
     <SettingsPage

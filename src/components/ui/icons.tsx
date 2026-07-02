@@ -14,6 +14,7 @@ import {
   ClipboardCheck,
   CloudRain,
   Earth,
+  EllipsisVertical,
   FileText,
   Grid2x2,
   House,
@@ -81,6 +82,7 @@ export const BarChartIcon = createIcon(BarChart3 as unknown as LucideNativeIcon)
 export const BookmarkIcon = createIcon(Bookmark as unknown as LucideNativeIcon);
 export const CloudRainIcon = createIcon(CloudRain as unknown as LucideNativeIcon);
 export const EarthIcon = createIcon(Earth as unknown as LucideNativeIcon);
+export const EllipsisVerticalIcon = createIcon(EllipsisVertical as unknown as LucideNativeIcon);
 export const FileTextIcon = createIcon(FileText as unknown as LucideNativeIcon);
 export const GridIcon = createIcon(Grid2x2 as unknown as LucideNativeIcon);
 export const InfoIcon = createIcon(Info as unknown as LucideNativeIcon);

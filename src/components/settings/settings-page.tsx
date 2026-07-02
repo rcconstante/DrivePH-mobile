@@ -19,6 +19,7 @@ import {
   type IconComponent,
 } from "@/components/ui/icons";
 import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
+import { colors } from "@/theme";
 
 type SettingsPageProps = PropsWithChildren<{
   subtitle?: string;
@@ -66,7 +67,7 @@ export function SettingsTopBar({ title }: { title: string }) {
         onPress={() => router.back()}
         style={styles.iconButton}
       >
-        <ArrowLeftIcon color="#172230" size={20} strokeWidth={2} />
+        <ArrowLeftIcon color={colors.text as string} size={20} strokeWidth={2} />
       </Pressable>
       <Text style={styles.screenTitle}>{title}</Text>
       <View style={styles.iconButtonSpacer} />
@@ -105,7 +106,7 @@ export type SettingsRowProps = {
 export function SettingsRow({
   accessibilityHint,
   accessory,
-  color = "#4caf50",
+  color = colors.primary as string,
   description,
   icon: Icon,
   image,
@@ -154,7 +155,7 @@ export function SettingsRow({
       ) : (
         <View style={styles.rowRight}>
           {rightLabel != null ? <Text style={styles.rightLabel}>{rightLabel}</Text> : null}
-          {hasNavigation ? <ChevronRightIcon color="#8f9aa6" size={18} strokeWidth={2} /> : null}
+          {hasNavigation ? <ChevronRightIcon color={colors.textSubtle} size={18} strokeWidth={2} /> : null}
         </View>
       )}
     </Pressable>
@@ -167,15 +168,15 @@ const styles = StyleSheet.create({
     width: 40,
   },
   cardGroup: {
-    backgroundColor: "#ffffff",
-    borderColor: "#e6ece8",
+    backgroundColor: colors.card,
+    borderColor: colors.borderSoft,
     borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",
   },
   checkCircle: {
     alignItems: "center",
-    backgroundColor: "#3da847",
+    backgroundColor: colors.primary,
     borderRadius: 10,
     height: 20,
     justifyContent: "center",
@@ -187,8 +188,8 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#e6ece8",
+    backgroundColor: colors.card,
+    borderColor: colors.borderSoft,
     borderRadius: 12,
     borderWidth: 1,
     height: 38,
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     width: 38,
   },
   rightLabel: {
-    color: "#2f973b",
+    color: colors.primary,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 0,
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   rowDescription: {
-    color: "#6d7782",
+    color: colors.textSubtle,
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 0,
@@ -242,18 +243,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   rowTitle: {
-    color: "#172230",
+    color: colors.text,
     fontSize: 13,
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 17,
   },
   screen: {
-    backgroundColor: "#fbfcf8",
+    backgroundColor: colors.screen,
     flex: 1,
   },
   screenTitle: {
-    color: "#172230",
+    color: colors.text,
     flex: 1,
     fontSize: 18,
     fontWeight: "900",
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionLabel: {
-    color: "#7b8591",
+    color: colors.textSubtle,
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 0,
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   subtitle: {
-    color: "#5d6875",
+    color: colors.textSubtle,
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0,

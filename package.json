@@ -5,6 +5,7 @@
   "dependencies": {
     "expo": "~56.0.12",
     "expo-router": "~56.2.11",
+    "expo-sqlite": "~56.0.5",
     "expo-status-bar": "~56.0.4",
     "lucide-react-native": "^1.22.0",
     "react": "19.2.3",
@@ -22,11 +23,14 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "test": "node --import tsx --test src/features/quiz/utils/quiz-engine.test.ts",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"
   },
   "private": true,
   "devDependencies": {
+    "@types/node": "^26.1.0",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }
 }

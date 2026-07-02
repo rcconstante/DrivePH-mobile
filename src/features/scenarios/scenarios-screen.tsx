@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CategoryFilter } from "@/components/common/category-filter";
 import {
   BookmarkIcon,
   ChevronRightIcon,
@@ -22,7 +23,6 @@ import {
   scenarioCategories,
   scenarios,
   type Scenario,
-  type ScenarioCategory,
   type ScenarioCategoryId,
 } from "@/features/scenarios/data";
 import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
@@ -51,20 +51,7 @@ export function ScenariosScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView
-        ref={scrollRef}
-        testID="scenarios-screen"
-        style={styles.scroll}
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingBottom: Math.max(insets.bottom, 18) + 152,
-            paddingTop: Math.max(insets.top, 18),
-          },
-        ]}
-      >
+      <View style={[styles.fixedHeader, { paddingTop: Math.max(insets.top, 18) }]}>
         <View style={styles.titleRow}>
           <Text style={styles.screenTitle}>Scenarios</Text>
           <CoinBalancePill />
@@ -77,8 +64,14 @@ export function ScenariosScreen() {
               Decide.{"\n"}
               Drive Safely.
             </Text>
-            <Text style={styles.heroText}>Learn by real-life situations and make better decisions on the road.</Text>
+            <Text style={styles.heroText}>Learn by real-life situations and make better decisions.</Text>
           </View>
+          <Image
+            source={require("../../assets/scenarios-assets/header.png")}
+            resizeMode="contain"
+            accessibilityLabel="Car driving through a city road scenario"
+            style={styles.heroImage}
+          />
         </View>
 
         <View style={styles.searchBox}>
@@ -93,21 +86,27 @@ export function ScenariosScreen() {
           />
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-        >
-          {scenarioCategories.map((category) => (
-            <ScenarioCategoryButton
-              category={category}
-              key={category.id}
-              onPress={() => setSelectedCategory(category.id)}
-              selected={category.id === selectedCategory}
-            />
-          ))}
-        </ScrollView>
+        <CategoryFilter
+          items={scenarioCategories}
+          onSelect={setSelectedCategory}
+          selectedId={selectedCategory}
+        />
+      </View>
 
+      <ScrollView
+        ref={scrollRef}
+        testID="scenarios-screen"
+        style={styles.scroll}
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            paddingBottom: Math.max(insets.bottom, 18) + 152,
+            paddingTop: 12,
+          },
+        ]}
+      >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Popular Scenarios</Text>
           <Text style={styles.seeAll}>See All</Text>
@@ -168,37 +167,6 @@ export function ScenariosScreen() {
   );
 }
 
-function ScenarioCategoryButton({
-  category,
-  onPress,
-  selected,
-}: {
-  category: ScenarioCategory;
-  onPress: () => void;
-  selected: boolean;
-}) {
-  const Icon = category.icon;
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={category.label}
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.categoryButton,
-        selected ? styles.categoryButtonSelected : null,
-        pressed ? styles.pressed : null,
-      ]}
-    >
-      <Icon color={selected ? "#2f973b" : category.color} size={16} strokeWidth={2} />
-      <Text style={[styles.categoryText, selected ? styles.categoryTextSelected : null]}>
-        {category.label}
-      </Text>
-    </Pressable>
-  );
-}
-
 function ScenarioCard({ onPress, scenario }: { onPress: () => void; scenario: Scenario }) {
   const theme = difficultyTheme[scenario.difficulty];
 
@@ -241,39 +209,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     flexDirection: "row",
     gap: 8,
-  },
-  categoryButton: {
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#e6ece8",
-    borderRadius: 999,
-    borderWidth: 1,
-    boxShadow: "0 4px 12px rgba(23, 34, 48, 0.05)",
-    flexDirection: "row",
-    gap: 5,
-    height: 36,
-    justifyContent: "center",
-    minWidth: 0,
-    paddingHorizontal: 12,
-  },
-  categoryButtonSelected: {
-    backgroundColor: "#effbf2",
-    borderColor: "#2f973b",
-  },
-  categoryList: {
-    gap: 10,
-    paddingRight: 18,
-  },
-  categoryText: {
-    color: "#061b49",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 0,
-    lineHeight: 13,
-    textAlign: "center",
-  },
-  categoryTextSelected: {
-    color: "#2f973b",
   },
   challengeButton: {
     alignItems: "center",
@@ -338,9 +273,12 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     width: 30,
   },
-  content: {
+  fixedHeader: {
+    backgroundColor: "#fbfcf8",
     gap: 12,
     paddingHorizontal: 18,
+    paddingBottom: 10,
+    zIndex: 2,
   },
   difficultyPill: {
     alignItems: "center",
@@ -382,13 +320,23 @@ const styles = StyleSheet.create({
     borderColor: "#cfeecf",
     borderRadius: 16,
     borderWidth: 1,
+    flexDirection: "row",
     minHeight: 116,
     overflow: "hidden",
     padding: 14,
   },
   heroCopy: {
+    flex: 1,
     gap: 6,
+    justifyContent: "center",
     zIndex: 1,
+  },
+  heroImage: {
+    bottom: -8,
+    height: 124,
+    position: "absolute",
+    right: -8,
+    width: 166,
   },
   heroText: {
     color: "#52627e",
@@ -396,6 +344,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0,
     lineHeight: 15,
+    maxWidth: 158,
   },
   heroTitle: {
     color: "#061b49",
@@ -448,6 +397,10 @@ const styles = StyleSheet.create({
   },
   scenarioList: {
     gap: 10,
+  },
+  listContent: {
+    gap: 12,
+    paddingHorizontal: 18,
   },
   scenarioTitle: {
     color: "#061b49",

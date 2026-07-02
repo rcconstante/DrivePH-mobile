@@ -1,5 +1,10 @@
 import type { ImageSourcePropType } from "react-native";
 
+import {
+  cdeRoadTrafficCheckpoint,
+  cdeRoadTrafficLearnSections,
+} from "@/features/traffic-rules/cde-road-traffic-rules";
+
 export type LearnCategoryId =
   | "all"
   | "student-permit"
@@ -34,8 +39,16 @@ export type LearnStage = {
 export type LearnInfoCard = {
   body: string;
   id: string;
+  image?: ImageSourcePropType;
+  imageLabel?: string;
   meta?: string;
   title: string;
+};
+
+export type LearnSectionImage = {
+  id: string;
+  image: ImageSourcePropType;
+  imageLabel: string;
 };
 
 export type LearnContentSection = {
@@ -43,6 +56,7 @@ export type LearnContentSection = {
   id: string;
   image?: ImageSourcePropType;
   imageLabel?: string;
+  images?: LearnSectionImage[];
   subtitle: string;
   title: string;
 };
@@ -72,6 +86,7 @@ export type LearnDetail = {
     title: string;
   };
   sections: LearnContentSection[];
+  showSubmoduleList?: boolean;
 };
 
 export const learnStages: LearnStage[] = [
@@ -128,6 +143,14 @@ export const learnTopics: LearnTopic[] = [
     image: trafficRulesImage,
     imageLabel: "Traffic warning",
     title: "Traffic Rules & Law",
+  },
+  {
+    id: "cde-road-traffic-rules",
+    categoryId: "road-knowledge",
+    description: "Road rules module with turning, lanes, right of way, parking, and crash duties.",
+    image: trafficRulesImage,
+    imageLabel: "Traffic warning",
+    title: "Rules on the Road",
   },
   {
     id: "basic-car-care",
@@ -481,6 +504,26 @@ const detailsByTopicId: Record<string, LearnDetail> = {
       successBody: "Yield to vehicles already circulating in the roundabout.",
     },
   },
+  "cde-road-traffic-rules": {
+    overview: {
+      tag: "Road Rules Module",
+      title: "Rules on the Road",
+      subtitle: "Main module for road and traffic rules in the Philippines.",
+      definition:
+        "Road and traffic rules explain how drivers should move, yield, park, and respond so that traffic stays predictable and safe.",
+      purposeBullets: [
+        "Know when overtaking, changing lanes, and turning are allowed.",
+        "Apply right-of-way rules at intersections, grades, and special crossings.",
+        "Avoid parking, yellow-box, and obstruction violations.",
+        "Understand basic vehicle condition and road-crash duties.",
+      ],
+      reminder:
+        "These road-rule notes are written for quick learning. Always follow posted signs and active traffic enforcers.",
+    },
+    sections: cdeRoadTrafficLearnSections,
+    checkpoint: cdeRoadTrafficCheckpoint,
+    showSubmoduleList: true,
+  },
   "basic-car-care": {
     overview: {
       tag: "Vehicle Care",
@@ -565,5 +608,17 @@ export const getLearnTopicById = (topicId: string) =>
 
 export const getLearnDetailByTopicId = (topicId: string) =>
   detailsByTopicId[topicId];
+
+export const getLearnSubmoduleById = (topicId: string, moduleId: string) =>
+  detailsByTopicId[topicId]?.sections.find((section) => section.id === moduleId);
+
+export const getLearnSubmoduleProgressId = (topicId: string, moduleId: string) =>
+  `${topicId}:${moduleId}`;
+
+export const getLearnSubmoduleUnitIds = (submodule: LearnContentSection) => [
+  "overview",
+  ...submodule.cards.map((card) => card.id),
+  "checkpoint",
+];
 
 export const getTopicStageCount = () => learnStages.length;

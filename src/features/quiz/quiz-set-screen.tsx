@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useIsFocused, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BackHandler, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeInRight,
   FadeInUp,
@@ -15,8 +15,8 @@ import Svg, { Path } from "react-native-svg";
 import { FloatingDetailHeader } from "@/components/navigation/floating-detail-header";
 import {
   ArrowLeftIcon,
+  EllipsisVerticalIcon,
   RefreshIcon,
-  SlidersHorizontalIcon,
 } from "@/components/ui/icons";
 import { useCoins } from "@/features/coins/coin-store";
 import {
@@ -25,33 +25,52 @@ import {
   getQuizSetBySetId,
   type QuizQuestion,
 } from "@/features/quiz/data";
-import { useQuizProgress } from "@/features/quiz/quiz-progress-store";
+import { getQuizReturnHref, type QuizEntryOrigin } from "@/features/quiz/navigation";
+import { useQuizProgress, type QuizAttemptRecord } from "@/features/quiz/quiz-progress-store";
+import {
+  buildAnswerRecords,
+  buildQuestionOrder,
+  clampIndex,
+  formatSeconds,
+  getQuizDurationSeconds,
+  getQuizScore,
+  getQuizScorePercent,
+  getRestoredQuestionOrder,
+  isPassingScore,
+  PASSING_PERCENT,
+  type QuizAnswerRecord,
+} from "@/features/quiz/utils/quiz-engine";
 import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 type QuizSetScreenProps = {
+  origin?: QuizEntryOrigin;
   quizId: string;
+  returnModuleId?: string;
+  returnTopicId?: string;
   setId: string;
-};
-
-type QuizAnswerRecord = {
-  correct: boolean;
-  correctChoiceId: string;
-  correctLabel: string;
-  explanation: string;
-  questionId: string;
-  questionPrompt: string;
-  selectedChoiceId: string;
-  selectedLabel: string;
 };
 
 const emptyQuestions: QuizQuestion[] = [];
 
-export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
+export function QuizSetScreen({
+  origin,
+  quizId,
+  returnModuleId,
+  returnTopicId,
+  setId,
+}: QuizSetScreenProps) {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const router = useRouter();
   const scrollRef = useRef<ScrollView | null>(null);
+  const latestAttemptRef = useRef<QuizAttemptRecord | null>(null);
   const { earnCoins } = useCoins();
-  const { recordQuizResult } = useQuizProgress();
+  const {
+    clearQuizAttempt,
+    getQuizAttempt,
+    recordQuizResult,
+    saveQuizAttempt,
+  } = useQuizProgress();
   const quizSet = getQuizSetById(quizId, setId) ?? getQuizSetBySetId(setId);
   const category = getQuizCategoryById(quizSet?.categoryId ?? quizId);
   const questions = quizSet?.questions ?? emptyQuestions;
@@ -65,19 +84,47 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
   const [allowBack, setAllowBack] = useState(true);
   const [autoCheck, setAutoCheck] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [timedOut, setTimedOut] = useState(false);
+  const returnHref = useMemo(
+    () =>
+      getQuizReturnHref({
+        categoryId: category?.id ?? quizId,
+        origin: origin ?? "quiz",
+        ...(returnModuleId != null ? { returnModuleId } : {}),
+        ...(returnTopicId != null ? { returnTopicId } : {}),
+      }),
+    [category?.id, origin, quizId, returnModuleId, returnTopicId],
+  );
+  const returnLabel = origin === "learn" && returnTopicId != null
+    ? "Back to Module"
+    : "Choose Another Set";
 
   useScrollToTopOnFocus(scrollRef);
 
   useEffect(() => {
-    setQuestionOrder(questions.map((question) => question.id));
-    setCurrentIndex(0);
-    setSelectedChoiceId(null);
-    setSubmitted(false);
-    setAnswersByQuestionId({});
+    const nextOrder = buildQuestionOrder({
+      limit: quizSet?.questionLimit,
+      questions,
+      randomize: quizSet?.randomizeByDefault === true,
+    });
+    const savedAttempt = quizSet == null ? null : getQuizAttempt(quizSet.id);
+    const restoredOrder = getRestoredQuestionOrder(savedAttempt, nextOrder, questions);
+    const restoredIndex = clampIndex(savedAttempt?.currentIndex ?? 0, restoredOrder.length);
+
+    setQuestionOrder(restoredOrder);
+    setCurrentIndex(restoredIndex);
+    setSelectedChoiceId(savedAttempt?.selectedChoiceId ?? null);
+    setSubmitted(savedAttempt?.submitted ?? false);
+    setAnswersByQuestionId(savedAttempt?.answersByQuestionId ?? {});
     setFinished(false);
     setShowReview(false);
+    setAllowBack(savedAttempt?.allowBack ?? true);
+    setAutoCheck(savedAttempt?.autoCheck ?? false);
     setActionsOpen(false);
-  }, [questions, quizSet?.id]);
+    setTimedOut(false);
+    setRemainingSeconds(savedAttempt?.remainingSeconds ?? getQuizDurationSeconds(quizSet, restoredOrder.length));
+  }, [questions, quizSet?.durationMinutes, quizSet?.id, quizSet?.questionLimit, quizSet?.randomizeByDefault]);
 
   const questionById = useMemo(
     () => new Map(questions.map((question) => [question.id, question])),
@@ -85,7 +132,7 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
   );
 
   const orderedQuestions = useMemo(() => {
-    if (questionOrder.length !== questions.length) {
+    if (questionOrder.length === 0) {
       return questions;
     }
 
@@ -98,21 +145,147 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
     () => buildAnswerRecords(orderedQuestions, answersByQuestionId),
     [answersByQuestionId, orderedQuestions],
   );
-  const score = answerRecords.filter((record) => record.correct).length;
+  const score = getQuizScore(answerRecords);
   const currentQuestion = orderedQuestions[currentIndex];
   const progress = orderedQuestions.length === 0
     ? 0
     : Math.round(((currentIndex + 1) / orderedQuestions.length) * 100);
+  const passed = isPassingScore(score, orderedQuestions.length);
+
+  useEffect(() => {
+    latestAttemptRef.current = quizSet != null && !finished && questionOrder.length > 0
+      ? {
+          allowBack,
+          answersByQuestionId,
+          autoCheck,
+          currentIndex,
+          questionOrder,
+          remainingSeconds,
+          selectedChoiceId,
+          submitted,
+          updatedAt: Date.now(),
+        }
+      : null;
+  }, [
+    allowBack,
+    answersByQuestionId,
+    autoCheck,
+    currentIndex,
+    finished,
+    questionOrder,
+    quizSet,
+    remainingSeconds,
+    selectedChoiceId,
+    submitted,
+  ]);
+
+  const persistCurrentAttempt = useCallback(() => {
+    const latestAttempt = latestAttemptRef.current;
+
+    if (quizSet == null || latestAttempt == null) {
+      return;
+    }
+
+    saveQuizAttempt(quizSet.id, latestAttempt);
+  }, [quizSet, saveQuizAttempt]);
+
+  useEffect(() => {
+    if (!isFocused) {
+      persistCurrentAttempt();
+    }
+  }, [isFocused, persistCurrentAttempt]);
+
+  useEffect(
+    () => () => {
+      persistCurrentAttempt();
+    },
+    [persistCurrentAttempt],
+  );
+
+  const exitQuiz = useCallback(() => {
+    persistCurrentAttempt();
+    router.replace(returnHref);
+  }, [persistCurrentAttempt, returnHref, router]);
+
+  useEffect(() => {
+    if (!isFocused) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      exitQuiz();
+      return true;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [exitQuiz, isFocused]);
+
+  useEffect(() => {
+    if (!isFocused || finished || questionOrder.length === 0 || quizSet == null || remainingSeconds <= 0) {
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      setRemainingSeconds((currentSeconds) => Math.max(currentSeconds - 1, 0));
+    }, 1000);
+
+    return () => {
+      clearInterval(timerId);
+    };
+  }, [finished, isFocused, questionOrder.length, quizSet, remainingSeconds]);
+
+  useEffect(() => {
+    if (
+      !isFocused ||
+      finished ||
+      questionOrder.length === 0 ||
+      quizSet == null ||
+      remainingSeconds !== 0
+    ) {
+      return;
+    }
+
+    latestAttemptRef.current = null;
+    clearQuizAttempt(quizSet.id);
+    recordQuizResult(quizSet.id, score, orderedQuestions.length);
+
+    if (passed) {
+      earnCoins({
+        sourceId: `quiz-${quizSet.id}`,
+        title: "Assessment Passed",
+        description: quizSet.title,
+        amount: 10,
+      });
+    }
+
+    setTimedOut(true);
+    setFinished(true);
+    setShowReview(false);
+  }, [
+    clearQuizAttempt,
+    earnCoins,
+    finished,
+    isFocused,
+    orderedQuestions.length,
+    passed,
+    questionOrder.length,
+    quizSet,
+    recordQuizResult,
+    remainingSeconds,
+    score,
+  ]);
 
   if (category == null || quizSet == null) {
     return (
       <View style={styles.screen}>
-        <FloatingDetailHeader fallbackHref="/quiz" showCoins={false} />
+        <FloatingDetailHeader fallbackHref={returnHref} showCoins={false} />
         <View style={[styles.notFound, { paddingTop: Math.max(insets.top, 18) + 70 }]}>
           <Text style={styles.title}>Quiz set not found</Text>
           <Text style={styles.subtitle}>This quiz set is not available.</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.replace("/quiz")} style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Open Quiz</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.replace(returnHref)} style={styles.primaryButton}>
+            <Text style={styles.primaryButtonText}>Go Back</Text>
           </Pressable>
         </View>
       </View>
@@ -158,13 +331,20 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
   };
 
   const finishQuiz = () => {
+    latestAttemptRef.current = null;
+    clearQuizAttempt(quizSet.id);
     recordQuizResult(quizSet.id, score, orderedQuestions.length);
-    earnCoins({
-      sourceId: `quiz-${quizSet.id}`,
-      title: "Quiz Completed",
-      description: quizSet.title,
-      amount: 10,
-    });
+
+    if (passed) {
+      earnCoins({
+        sourceId: `quiz-${quizSet.id}`,
+        title: "Assessment Passed",
+        description: quizSet.title,
+        amount: 10,
+      });
+    }
+
+    setTimedOut(false);
     setFinished(true);
     setShowReview(false);
   };
@@ -192,6 +372,8 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
   };
 
   const restartQuiz = (nextOrder = questionOrder) => {
+    latestAttemptRef.current = null;
+    clearQuizAttempt(quizSet.id);
     setQuestionOrder(nextOrder);
     setCurrentIndex(0);
     setSelectedChoiceId(null);
@@ -199,15 +381,19 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
     setAnswersByQuestionId({});
     setFinished(false);
     setShowReview(false);
+    setTimedOut(false);
+    setRemainingSeconds(getQuizDurationSeconds(quizSet, nextOrder.length));
     requestAnimationFrame(() => {
       scrollRef.current?.scrollTo({ animated: false, y: 0 });
     });
   };
 
   const shuffleQuestions = () => {
-    const shuffled = [...orderedQuestions]
-      .sort(() => Math.random() - 0.5)
-      .map((question) => question.id);
+    const shuffled = buildQuestionOrder({
+      limit: quizSet.questionLimit,
+      questions,
+      randomize: true,
+    });
 
     if (shuffled.join("|") === questionOrder.join("|") && shuffled.length > 1) {
       shuffled.reverse();
@@ -228,10 +414,8 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
   return (
     <View style={styles.screen}>
       <FloatingDetailHeader
-        fallbackHref={{
-          pathname: "/quiz/[quizId]",
-          params: { quizId: category.id },
-        }}
+        fallbackHref={returnHref}
+        onBack={exitQuiz}
         rightAccessory={
           <Pressable
             accessibilityRole="button"
@@ -239,7 +423,7 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
             onPress={() => setActionsOpen(true)}
             style={({ pressed }) => [styles.headerActionButton, pressed ? styles.pressed : null]}
           >
-            <SlidersHorizontalIcon color="#061b49" size={18} strokeWidth={2.1} />
+            <EllipsisVerticalIcon color="#061b49" size={19} strokeWidth={2.2} />
           </Pressable>
         }
       />
@@ -283,16 +467,19 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
         {finished ? (
           <>
             <QuizResultCard
-              onChooseSet={() =>
-                router.replace({
-                  pathname: "/quiz/[quizId]",
-                  params: { quizId: category.id },
-                })
+              onChooseSet={() => router.replace(returnHref)}
+              onRetake={() =>
+                restartQuiz(buildQuestionOrder({
+                  limit: quizSet.questionLimit,
+                  questions,
+                  randomize: quizSet.randomizeByDefault === true,
+                }))
               }
-              onRestart={() => restartQuiz(questionOrder)}
               onToggleReview={() => setShowReview((visible) => !visible)}
               reviewVisible={showReview}
+              returnLabel={returnLabel}
               score={score}
+              timedOut={timedOut}
               totalQuestions={orderedQuestions.length}
             />
             {showReview ? <ReviewAnswers records={answerRecords} /> : null}
@@ -309,6 +496,7 @@ export function QuizSetScreen({ quizId, setId }: QuizSetScreenProps) {
             onSubmit={() => submitAnswer()}
             progress={progress}
             question={currentQuestion}
+            remainingSeconds={remainingSeconds}
             selectedChoiceId={selectedChoiceId}
             submitted={submitted}
             totalQuestions={orderedQuestions.length}
@@ -422,41 +610,49 @@ function ActionRow({
 
 function QuizResultCard({
   onChooseSet,
-  onRestart,
+  onRetake,
   onToggleReview,
   reviewVisible,
+  returnLabel,
   score,
+  timedOut,
   totalQuestions,
 }: {
   onChooseSet: () => void;
-  onRestart: () => void;
+  onRetake: () => void;
   onToggleReview: () => void;
   reviewVisible: boolean;
+  returnLabel: string;
   score: number;
+  timedOut: boolean;
   totalQuestions: number;
 }) {
-  const percent = totalQuestions === 0 ? 0 : Math.round((score / totalQuestions) * 100);
-  const passed = percent >= 75;
+  const percent = getQuizScorePercent(score, totalQuestions);
+  const passed = isPassingScore(score, totalQuestions);
 
   return (
     <View style={styles.resultCard}>
       <ScoreGauge percent={percent} />
-      <Text style={styles.resultTitle}>{passed ? "Assessment Passed" : "Keep Practicing"}</Text>
+      <Text style={styles.resultTitle}>{passed ? "Assessment Passed" : "Assessment Not Passed"}</Text>
+      <Text style={[styles.passStatus, passed ? styles.passStatusPassed : styles.passStatusFailed]}>
+        Passing score: {PASSING_PERCENT}%
+      </Text>
       <Text style={styles.resultText}>
+        {timedOut ? "Time expired. Your assessment was submitted automatically. " : ""}
         You scored {score} out of {totalQuestions}. {passed
-          ? "Congratulations, you passed this quiz set."
-          : "Review the missed answers, then try again."}
+          ? "Congratulations, you passed the assessment."
+          : "Review the missed answers, then retake the assessment."}
       </Text>
       <View style={styles.resultActions}>
         <Pressable accessibilityRole="button" onPress={onToggleReview} style={styles.secondaryAction}>
           <Text style={styles.secondaryActionText}>{reviewVisible ? "Hide Review" : "Review Answers"}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={onRestart} style={styles.secondaryAction}>
-          <Text style={styles.secondaryActionText}>Retry Quiz</Text>
+        <Pressable accessibilityRole="button" onPress={onChooseSet} style={styles.secondaryAction}>
+          <Text style={styles.secondaryActionText}>{returnLabel}</Text>
         </Pressable>
       </View>
-      <Pressable accessibilityRole="button" onPress={onChooseSet} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>Choose Another Set</Text>
+      <Pressable accessibilityRole="button" onPress={onRetake} style={styles.primaryButton}>
+        <Text style={styles.primaryButtonText}>Retake Assessment</Text>
       </Pressable>
     </View>
   );
@@ -526,6 +722,7 @@ function QuestionCard({
   onSubmit,
   progress,
   question,
+  remainingSeconds,
   selectedChoiceId,
   submitted,
   totalQuestions,
@@ -540,12 +737,14 @@ function QuestionCard({
   onSubmit: () => void;
   progress: number;
   question: QuizQuestion;
+  remainingSeconds: number;
   selectedChoiceId: string | null;
   submitted: boolean;
   totalQuestions: number;
 }) {
   const flipProgress = useSharedValue(0);
-  const selectedCorrect = submitted && selectedChoiceId === question.answerId;
+  const revealAnswer = submitted && autoCheck;
+  const selectedCorrect = revealAnswer && selectedChoiceId === question.answerId;
   const primaryLabel = submitted
     ? currentIndex === totalQuestions - 1
       ? "Finish Quiz"
@@ -555,8 +754,8 @@ function QuestionCard({
       : "Submit Answer";
 
   useEffect(() => {
-    flipProgress.value = withTiming(submitted ? 1 : 0, { duration: 240 });
-  }, [flipProgress, question.id, submitted]);
+    flipProgress.value = withTiming(revealAnswer ? 1 : 0, { duration: 240 });
+  }, [flipProgress, question.id, revealAnswer]);
 
   const frontStyle = useAnimatedStyle(() => ({
     opacity: flipProgress.value < 0.5 ? 1 : 0,
@@ -575,7 +774,7 @@ function QuestionCard({
   }));
 
   const toggleCard = () => {
-    if (!submitted) {
+    if (!revealAnswer) {
       return;
     }
 
@@ -592,6 +791,7 @@ function QuestionCard({
         <Text style={styles.progressText}>
           Question {currentIndex + 1} of {totalQuestions}
         </Text>
+        <Text style={styles.timerText}>Time {formatSeconds(remainingSeconds)}</Text>
         <Text style={styles.progressText}>{progress}%</Text>
       </View>
       <View style={styles.progressTrack}>
@@ -600,8 +800,8 @@ function QuestionCard({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={submitted ? "Review answer card" : "Question card"}
-        disabled={!submitted}
+        accessibilityLabel={revealAnswer ? "Review answer card" : "Question card"}
+        disabled={!revealAnswer}
         onPress={toggleCard}
         style={styles.flashCard}
       >
@@ -617,7 +817,11 @@ function QuestionCard({
           ) : null}
           <Text style={styles.questionText}>{question.prompt}</Text>
           <Text style={styles.cardHint}>
-            {autoCheck ? "Auto-check is enabled." : "Choose an answer below."}
+            {autoCheck
+              ? "Auto-check is enabled."
+              : submitted
+                ? "Answer saved. Results are shown after the assessment."
+                : "Choose an answer below."}
           </Text>
         </Animated.View>
         <Animated.View style={[styles.flashFace, styles.flashBack, backStyle]}>
@@ -632,8 +836,8 @@ function QuestionCard({
       <View style={styles.choiceList}>
         {question.choices.map((choice, index) => {
           const selected = selectedChoiceId === choice.id;
-          const correct = submitted && choice.id === question.answerId;
-          const wrong = submitted && selected && choice.id !== question.answerId;
+          const correct = revealAnswer && choice.id === question.answerId;
+          const wrong = revealAnswer && selected && choice.id !== question.answerId;
 
           return (
             <Animated.View
@@ -690,34 +894,6 @@ function QuestionCard({
       </View>
     </Animated.View>
   );
-}
-
-function buildAnswerRecords(
-  questions: QuizQuestion[],
-  answersByQuestionId: Record<string, string>,
-) {
-  return questions
-    .map((question) => {
-      const selectedChoiceId = answersByQuestionId[question.id];
-      const selectedChoice = question.choices.find((choice) => choice.id === selectedChoiceId);
-      const correctChoice = question.choices.find((choice) => choice.id === question.answerId);
-
-      if (selectedChoiceId == null || selectedChoice == null || correctChoice == null) {
-        return null;
-      }
-
-      return {
-        questionId: question.id,
-        questionPrompt: question.prompt,
-        selectedChoiceId,
-        selectedLabel: selectedChoice.label,
-        correctChoiceId: correctChoice.id,
-        correctLabel: correctChoice.label,
-        correct: selectedChoiceId === question.answerId,
-        explanation: question.explanation,
-      };
-    })
-    .filter((record): record is QuizAnswerRecord => record != null);
 }
 
 const styles = StyleSheet.create({
@@ -944,6 +1120,24 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 18,
   },
+  passStatus: {
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 15,
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  passStatusFailed: {
+    backgroundColor: "#fff0f2",
+    color: "#ef4444",
+  },
+  passStatusPassed: {
+    backgroundColor: "#effbf2",
+    color: "#2f973b",
+  },
   pressed: {
     opacity: 0.86,
   },
@@ -1161,5 +1355,13 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0,
     lineHeight: 24,
+  },
+  timerText: {
+    color: "#2f973b",
+    fontSize: 11,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "900",
+    letterSpacing: 0,
+    lineHeight: 15,
   },
 });

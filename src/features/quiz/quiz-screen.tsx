@@ -37,6 +37,7 @@ export function QuizScreen() {
     router.push({
       pathname: "/quiz/[quizId]/[setId]",
       params: {
+        origin: "quiz",
         quizId: featuredSet.categoryId,
         setId: featuredSet.id,
       },

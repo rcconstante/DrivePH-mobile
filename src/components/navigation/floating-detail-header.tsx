@@ -8,12 +8,14 @@ import { CoinBalancePill } from "@/features/coins/components/coin-balance-pill";
 
 type FloatingDetailHeaderProps = {
   fallbackHref?: Href;
+  onBack?: () => void;
   rightAccessory?: ReactNode;
   showCoins?: boolean;
 };
 
 export function FloatingDetailHeader({
   fallbackHref = "/",
+  onBack,
   rightAccessory,
   showCoins = true,
 }: FloatingDetailHeaderProps) {
@@ -21,6 +23,11 @@ export function FloatingDetailHeader({
   const router = useRouter();
 
   const handleBack = () => {
+    if (onBack != null) {
+      onBack();
+      return;
+    }
+
     if (router.canGoBack()) {
       router.back();
       return;
@@ -48,8 +55,8 @@ export function FloatingDetailHeader({
         <ArrowLeftIcon color="#061b49" size={20} strokeWidth={2.2} />
       </Pressable>
       <View style={styles.rightGroup}>
-        {rightAccessory}
-        {showCoins ? <CoinBalancePill /> : <View style={styles.spacer} />}
+        {showCoins ? <CoinBalancePill /> : null}
+        {rightAccessory ?? (!showCoins ? <View style={styles.spacer} /> : null)}
       </View>
     </View>
   );

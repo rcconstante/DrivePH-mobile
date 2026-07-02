@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Switch } from "react-native";
 
 import { SettingsPage, SettingsRow, SettingsSection } from "@/components/settings/settings-page";
@@ -7,6 +6,8 @@ import {
   notificationSettings,
   type NotificationSettingId,
 } from "@/features/settings/settings-options";
+import { usePersistentState } from "@/hooks/use-persistent-state";
+import { storageKeys } from "@/services/storage-keys";
 
 const initialNotificationState: Record<NotificationSettingId, boolean> = {
   "daily-reminders": true,
@@ -17,7 +18,10 @@ const initialNotificationState: Record<NotificationSettingId, boolean> = {
 };
 
 export function NotificationsScreen() {
-  const [settings, setSettings] = useState(initialNotificationState);
+  const [settings, setSettings] = usePersistentState(
+    storageKeys.settingsNotifications,
+    initialNotificationState,
+  );
 
   const updateSetting = (settingId: NotificationSettingId, enabled: boolean) => {
     setSettings((currentSettings) => ({

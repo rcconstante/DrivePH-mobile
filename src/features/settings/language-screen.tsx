@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,11 +8,15 @@ import {
   type LanguageOption,
   type LanguageOptionId,
 } from "@/features/settings/settings-options";
+import { usePersistentState } from "@/hooks/use-persistent-state";
+import { storageKeys } from "@/services/storage-keys";
+
+const defaultLanguage: LanguageOptionId = "english-ph";
 
 export function LanguageScreen() {
   const insets = useSafeAreaInsets();
   const [selectedLanguage, setSelectedLanguage] =
-    useState<LanguageOptionId>("english-ph");
+    usePersistentState<LanguageOptionId>(storageKeys.settingsLanguage, defaultLanguage);
 
   return (
     <View style={styles.screen}>

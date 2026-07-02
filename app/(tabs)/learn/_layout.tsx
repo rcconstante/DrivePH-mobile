@@ -5,6 +5,7 @@ export default function LearnLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="[topicId]" />
+      <Stack.Screen name="[topicId]/[moduleId]" />
     </Stack>
   );
 }
